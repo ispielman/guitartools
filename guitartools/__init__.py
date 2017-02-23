@@ -100,42 +100,38 @@ class Changes():
         Ramdonly suggest a change to work on, with probabilities distributed 
         according to how bad we are at a changes
         """
-        
-        #
-        # TODO: as cute as this is, I really need to be making a matrix
-        # because we need to include all untested chord pairs as well
-        # and the n^2 scaling might really hit the dictionary at some point
-        # We only want to add a pair to the dictionary if we actually
-        # practiced it, so what gets saved to disk is the set of worked-on
-        # chords not the set of all chords.
-        #
-        # need to understand how to either make a dataframe that I can
-        # do 2D indexing by label on, or a 2D structured array.  Or I can
-        # make a new data structure that is sparse-array-like  I think I like
-        # this.  I can have a default return of 1 and I can use my chords
-        # list as allowed indices.
-        #
-        # First attempt below
-        
-        keys = []
-        for key1 in self._chords:
-            for key2 in self._chords:
-                if key1 != key2: keys.append( (key1, key2) )
+                
         
         total = 0
-        for key in keys:
+        for key in self._known_pairs():
             total += 1/self._changes.get(key, 1)
             
         selected = total * random.random()
         
         total = 0
-        for key in keys:
+        for key in self._known_pairs():
             total += 1/self._changes.get(key, 1)
             
             if selected < total:
                 break
             
         return key, self._changes.get(key, 1)
+
+    def _known_pairs(self):
+        """
+        a generator that yields a list of distinct chord pairs
+        """
+        num_chords = len(self._chords)
+        
+        if num_chords < 2:
+            msg = "Cannot generate pairs without two known chords"
+            raise ValueError(msg)
+
+        for i in range(num_chords-1):
+            for j in range(i, num_chords):
+                pair = tuple(sorted( [self._chords[i], self._chords[j]] ))
+                yield pair
+       
 
 class Timer():
     """
