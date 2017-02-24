@@ -47,16 +47,17 @@ class Changes():
         
         self._chords = []
         self._changes = {}
-        
-        self._df = DataFrame()
-        
+                
         self._filename = filename
+        
         self._config = configobj.ConfigObj(infile=self._filename)
+        
+        self._timer = Timer()
         
         for k, v in self._config.items():
             self._add_changes(v)
     
-    def record_changes(self, Chord1, Chord2, Changes=1):
+    def RecordChanges(self, Chord1, Chord2, Changes=1):
         """
         User interface to record a new set of changes.  Use this to add a new chord
         with no changes passed.
@@ -94,14 +95,32 @@ class Changes():
         
         if int(changes['Changes']) > best:
             self._changes[pair] = int(changes['Changes'])
+    
+    @property
+    def DataFrame(self):
+        """
+        returns a dataframe representation of the curent data
         
-    def Suggest(self):
+        this may end up being a limitation since we are recording the whole
+        history of changes over and over again, including duplicates and all.
+        """
+        
+        d = DataFrame(index=self._chords, columns=self._chords)
+        
+        for key, val in self._changes.items():
+            d.set_value(key[0], key[1], val)
+            d.set_value(key[1], key[0], val)
+        
+        return d
+    
+    def Suggest(self, ChordsOnly=True):
         """
         Ramdonly suggest a change to work on, with probabilities distributed 
         according to how bad we are at a changes
+        
+        ChordsOnly = True/False if False, also return the best score
         """
                 
-        
         total = 0
         for key in self._known_pairs():
             total += 1/self._changes.get(key, 1)
@@ -114,8 +133,11 @@ class Changes():
             
             if selected < total:
                 break
-            
-        return key, self._changes.get(key, 1)
+        
+        if ChordsOnly:
+            return key
+        else:
+            return key, self._changes.get(key, 1)
 
     def _known_pairs(self):
         """
@@ -128,10 +150,27 @@ class Changes():
             raise ValueError(msg)
 
         for i in range(num_chords-1):
-            for j in range(i, num_chords):
+            for j in range(i+1, num_chords):
                 pair = tuple(sorted( [self._chords[i], self._chords[j]] ))
                 yield pair
        
+    def SuggestAndTime(self, delay=60, display=True):
+        """
+        I expext this will be the most used function called in this way
+        
+        c = Changes()
+        c.SuggestAndTime()
+        c.RecordChanges("A", "B", changes)
+        """
+        
+        key = self.Suggest(self)
+        
+        if display:
+            print("Your chords are ", key)
+        
+        self._timer.start(5, display)
+        
+        self._timer.start(delay, display)
 
 class Timer():
     """
@@ -143,9 +182,13 @@ class Timer():
         
         self._countdown_queue = queue.Queue()
         
-    def start(self, delay):
+    def start(self, delay, display=True):
         """
         Start a countdown for a time given by delay
+        
+        delay: countdown time in s
+        
+        display: True/False print output or not
         """
         
         self._timer.start(
@@ -155,22 +198,26 @@ class Timer():
         
         t = None
         
-        sys.stdout.write(r"\n")
+        if display: sys.stdout.write("\n")
+        
         while t != 0:
-            
-            if have_ipython:
-                try:
-                    clear_output()
-                except Exception:
-                    # terminal IPython has no clear_output
-                    pass
-
             t = round(self._countdown_queue.get())
-            msg = r"Time Remaning: {0} s".format(t)
-
-            sys.stdout.write(msg)
-            sys.stdout.flush()
             
+            if display:
+                if have_ipython:
+                    try:
+                        clear_output()
+                    except Exception:
+                        # terminal IPython has no clear_output
+                        pass
+    
+                msg = r"Time Remaning: {0} s".format(t)
+    
+                sys.stdout.write(msg)
+                sys.stdout.flush()
+        
+        self._timer.wait()
+     
             
     def __call__(self, delay):
         """

@@ -77,6 +77,8 @@ class base_timer():
         
         # queue to contacting timing thread    
         self._timing_queue = Queue()
+        
+        self._countdown_worker = None
     
     def _timer_done(self):
         self._timing = False
@@ -112,9 +114,9 @@ class base_timer():
         SleepWorker.setDaemon(True)
 
         if countdown_queue is not None:
-            CountdownWorker = Thread(target=Countdown, args=(self._delay, countdown_queue, interval, countdown_mode))
-            CountdownWorker.setDaemon(True)
-            CountdownWorker.start()
+            self._countdown_worker = Thread(target=Countdown, args=(self._delay, countdown_queue, interval, countdown_mode))
+            self._countdown_worker.setDaemon(True)
+            self._countdown_worker.start()
 
         SleepWorker.start()
         self._start_time = time.time()
