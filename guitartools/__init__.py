@@ -10,15 +10,16 @@ I expext this will be the most used function called in this way
 
 c = Changes()
 c.SuggestAndTime()
-c.RecordChanges("A", "B", changes) # This will write to disk!  Right now we
-keep a full history, which might be useful for something in the figure to look
-at plataueing for example.
+c.RecordChanges(changes) # This will write to disk!  
+
+Right now we keep a full history, which might be useful for something in the 
+figure to look at plataueing for example.
 """
 
 
 import configobj
 import sys
-import queue
+import threading
 import time
 import random
 from pandas import DataFrame
@@ -72,7 +73,7 @@ class Changes():
         
         self._config = configobj.ConfigObj(infile=self._filename)
         
-        self._timer = Timer()
+        self._countdown_timer = CountdownTimer()
         
         for k, v in self._config.items():
             self._add_changes(v)
@@ -204,7 +205,7 @@ class Changes():
         
         c = Changes()
         c.SuggestAndTime()
-        c.RecordChanges("A", "B", changes)
+        c.RecordChanges(changes)
         """
         
         key = self.Suggest(Chord=Chord)
@@ -212,20 +213,98 @@ class Changes():
         if display:
             print("Your chords are ", key)
         
-        self._timer.start(5, display)
+        self._countdown_timer.start(5, display)
         
-        self._timer.start(delay, display)
+        self._countdown_timer.start(delay, display)
 
-class Timer():
+# #############################################################################
+#
+# Metronome
+#
+# #############################################################################
+
+class Metronome():
+    """
+    Provides a user friendly metronome
+    """
+    
+    def __init__(self):
+        self._timer = base_timer()
+
+        self._worker = threading.Thread()
+                
+    def start(self, BPM=60.0, beats=4, keybeat=False):
+        """
+        Start a countdown for a time given by delay
+        
+        BPM: beats per minute
+        
+        beats: beats per measure
+        
+        keybeat: emhpasize the first beat of each measure
+        """
+                
+        self._worker = threading.Thread(target=_metronome, args=(BPM, beats, keybeat, self._timer))
+        
+        self._worker.setDaemon(True)
+        self._worker.start()
+    
+    def stop(self):
+        """
+        Stop the metronome
+        """
+        
+        self._timer.stop()
+
+def _metronome(BPM, beats, keybeats, timer):
+    """
+    support function of self that is made its own thread for the metronome program
+    """
+    
+    interval = 60/BPM
+
+    #
+    # Setup spound
+    #
+    
+    #
+    # Start the metronome going!
+    #
+
+    timer.start(interval=interval)
+
+    i = 0
+    while timer.check():
+        try:
+            timer.countdown_queue.get(timeout=2*interval)
+        except:
+            pass
+        else:  
+            if keybeats and i % beats == 0:
+                msg = r"#"
+            else:
+                msg = r"."
+    
+            sys.stdout.write(msg)
+            sys.stdout.flush()
+            
+            i += 1
+
+# #############################################################################
+#
+# Countdown Timer
+#
+# #############################################################################
+
+            
+class CountdownTimer():
     """
     Provides a user friendly countdown timer
     """
     
     def __init__(self):
         self._timer = base_timer()
-        
-        self._countdown_queue = queue.Queue()
-        
+                
     def start(self, delay, display=True):
         """
         Start a countdown for a time given by delay
@@ -235,30 +314,33 @@ class Timer():
         display: True/False print output or not
         """
         
+        interval = 1
+        
         self._timer.start(
                 delay=delay,
-                countdown_queue=self._countdown_queue,
-                interval=1.0)
+                interval=interval)
         
         t = None
-        
-        if display: sys.stdout.write("\n")
-        
-        while t != 0:
-            t = round(self._countdown_queue.get())
+                
+        while self._timer.check():
+            try:
+                t = self._timer.countdown_queue.get(timeout=2*interval)
+            except:
+                pass
+            else:  
             
-            if display:
-                if have_ipython:
-                    try:
-                        clear_output()
-                    except Exception:
-                        # terminal IPython has no clear_output
-                        pass
-    
-                msg = r"Time Remaning: {0} s".format(t)
-    
-                sys.stdout.write(msg)
-                sys.stdout.flush()
+                if display:
+                    if have_ipython:
+                        try:
+                            clear_output()
+                        except Exception:
+                            # terminal IPython has no clear_output
+                            pass
+        
+                    msg = r"Time Remaning: {0:.2f} s".format(t)
+        
+                    sys.stdout.write(msg)
+                    sys.stdout.flush()
         
         self._timer.wait()
      
