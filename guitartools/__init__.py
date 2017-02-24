@@ -1,3 +1,21 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun May 24 22:08:53 2015
+
+This file provides guitar pratice tools
+
+@author: Ian Spielman
+
+I expext this will be the most used function called in this way
+
+c = Changes()
+c.SuggestAndTime()
+c.RecordChanges("A", "B", changes) # This will write to disk!  Right now we
+keep a full history, which might be useful for something in the figure to look
+at plataueing for example.
+"""
+
+
 import configobj
 import sys
 import queue
@@ -47,6 +65,8 @@ class Changes():
         
         self._chords = []
         self._changes = {}
+        
+        self._last_suggestion = None
                 
         self._filename = filename
         
@@ -56,14 +76,25 @@ class Changes():
         
         for k, v in self._config.items():
             self._add_changes(v)
-    
-    def RecordChanges(self, Chord1, Chord2, Changes=1):
+        
+    def RecordChanges(self, Changes=1, Chord1=None, Chord2=None):
         """
-        User interface to record a new set of changes.  Use this to add a new chord
-        with no changes passed.
+        User interface to record a new set of changes.
         """
         
         Changes = max(Changes, 1)
+        
+        if Chord1 is None and Chord2 is None:
+            try:
+                Chord1 = self._last_suggestion[0]
+                Chord2 = self._last_suggestion[1]
+                
+                self._last_suggestion = None
+            except:
+                raise RuntimeError('RecordChanges: No suggestion exists yet: need to pass Chords in this case')
+        elif Chord1 is None or Chord2 is None:
+            raise RuntimeError('RecordChanges: Need to pass two chords')
+        
         
         DateTime = time.ctime()
         self._config[DateTime] = {
@@ -113,48 +144,61 @@ class Changes():
         
         return d
     
-    def Suggest(self, ChordsOnly=True):
+    def Suggest(self, Chord=None, ChordsOnly=True):
         """
         Ramdonly suggest a change to work on, with probabilities distributed 
         according to how bad we are at a changes
+        
+        Chord : if desired draw only from chord:
         
         ChordsOnly = True/False if False, also return the best score
         """
                 
         total = 0
-        for key in self._known_pairs():
+        for key in self._known_pairs(Chord=Chord):
             total += 1/self._changes.get(key, 1)
             
         selected = total * random.random()
         
         total = 0
-        for key in self._known_pairs():
+        for key in self._known_pairs(Chord=Chord):
             total += 1/self._changes.get(key, 1)
             
             if selected < total:
                 break
+        
+        self._last_suggestion = key
         
         if ChordsOnly:
             return key
         else:
             return key, self._changes.get(key, 1)
 
-    def _known_pairs(self):
+    def _known_pairs(self, Chord=None):
         """
         a generator that yields a list of distinct chord pairs
+        
+        If Chord is passed we give only those pairs that contain Chord
         """
         num_chords = len(self._chords)
         
         if num_chords < 2:
             msg = "Cannot generate pairs without two known chords"
             raise ValueError(msg)
-
-        for i in range(num_chords-1):
-            for j in range(i+1, num_chords):
-                pair = tuple(sorted( [self._chords[i], self._chords[j]] ))
-                yield pair
-       
-    def SuggestAndTime(self, delay=60, display=True):
+        
+        if Chord is None:
+            for i in range(num_chords-1):
+                for j in range(i+1, num_chords):
+                    pair = tuple(sorted( [self._chords[i], self._chords[j]] ))
+                    yield pair
+        else:
+            for i in range(num_chords):
+                if self._chords[i] != Chord:
+                    pair = tuple(sorted( [Chord, self._chords[i]] ))
+                    yield pair
+            
+            
+    def SuggestAndTime(self, Chord=None, delay=60, display=True):
         """
         I expext this will be the most used function called in this way
         
@@ -163,7 +207,7 @@ class Changes():
         c.RecordChanges("A", "B", changes)
         """
         
-        key = self.Suggest(self)
+        key = self.Suggest(Chord=Chord)
         
         if display:
             print("Your chords are ", key)
