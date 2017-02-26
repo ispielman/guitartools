@@ -154,18 +154,19 @@ class Changes():
         
         return d
     
-    def Suggest(self, Chord=None, ChordsOnly=True):
+    def Suggest(self, *args, ChordsOnly=True):
         """
         Ramdonly suggest a change to work on, with probabilities distributed 
         according to how bad we are at a changes
         
-        Chord : if desired draw only from chord:
+        *args : if desired draw only from any chords in *args, 
+        self.Suggest("A", "B"), for example.
         
         ChordsOnly = True/False if False, also return the best score
         """
                 
         total = 0
-        for key in self._known_pairs(Chord=Chord):
+        for key in self._known_pairs(*args):
             if key in self._changes:
                 total += 1/self._changes[key]
             else:
@@ -178,7 +179,7 @@ class Changes():
         selected = total * random.random()
         
         total = 0
-        for key in self._known_pairs(Chord=Chord):
+        for key in self._known_pairs(*args):
             if key in self._changes:
                 total += 1/self._changes[key]
             else:
@@ -198,11 +199,12 @@ class Changes():
         else:
             return key, self._changes.get(key, 1)
 
-    def _known_pairs(self, Chord=None):
+    def _known_pairs(self, *args):
         """
         a generator that yields a list of distinct chord pairs
         
-        If Chord is passed we give only those pairs that contain Chord
+        *args : if desired draw only from any chords in *args, 
+        self._known_pairs("A", "B"), for example.
         """
         num_chords = len(self._chords)
         
@@ -210,17 +212,22 @@ class Changes():
             msg = "Cannot generate pairs without two known chords"
             raise ValueError(msg)
         
-        if Chord is None:
+        if len(args) == 0:
             for i in range(num_chords-1):
                 for j in range(i+1, num_chords):
                     pair = tuple(sorted( [self._chords[i], self._chords[j]] ))
                     yield pair
         else:
-            for i in range(num_chords):
-                if self._chords[i] != Chord:
-                    pair = tuple(sorted( [Chord, self._chords[i]] ))
-                    yield pair
-            
+            # Using list rather than a set because I want an ordered result
+            Pairs = []
+            for Chord1 in args:
+                for Chord2 in self._chords:
+                    if Chord2 != Chord1:
+                        Pair = tuple(sorted( [Chord1, Chord2] ))
+                        if Pair not in Pairs: Pairs.append( Pair )
+                        
+            for Pair in Pairs:
+                yield Pair
             
     def SuggestAndTime(self, Chord=None, delay=60, display=True):
         """
