@@ -16,10 +16,12 @@ Right now we keep a full history, which might be useful for something in the
 figure to look at plataueing for example.
 """
 
+import numpy as np
 
 import configobj
 import sys
 import threading
+import multiprocessing
 import time
 import random
 from pandas import DataFrame
@@ -27,7 +29,7 @@ from pandas import DataFrame
 from guitartools.timing_utils import base_timer
 
 try:
-    import pygame
+    import pygame.mixer, pygame.time, pygame.sndarray
 except ImportError:
     print("ERROR: PyGame needed to run this program. \
           Please install it and try again")
@@ -78,9 +80,11 @@ class Changes():
         for k, v in self._config.items():
             self._add_changes(v)
         
-    def RecordChanges(self, Changes=1, Chord1=None, Chord2=None):
+    def RecordChanges(self, Changes=1, Chord1=None, Chord2=None, NewChords=False):
         """
         User interface to record a new set of changes.
+        
+        NewChords: Allow new chords to be added
         """
         
         Changes = max(Changes, 1)
@@ -96,6 +100,11 @@ class Changes():
         elif Chord1 is None or Chord2 is None:
             raise RuntimeError('RecordChanges: Need to pass two chords')
         
+        # Check new chords
+        if not NewChords:
+            if not (Chord1 in self._chords and Chord2 in self._chords):
+                raise RuntimeError('RecordChanges: New chord passed when NewChords not set')
+                
         
         DateTime = time.ctime()
         self._config[DateTime] = {
@@ -157,13 +166,27 @@ class Changes():
                 
         total = 0
         for key in self._known_pairs(Chord=Chord):
-            total += 1/self._changes.get(key, 1)
+            if key in self._changes:
+                total += 1/self._changes[key]
+            else:
+                # chord not yet tested, so take mean of goodness of two com-
+                # ponent chords
+                df = self.DataFrame
+                mean_changes = 0.5 * (df[key[0]].mean() + df[key[1]].mean())
+                total += 1/mean_changes
             
         selected = total * random.random()
         
         total = 0
         for key in self._known_pairs(Chord=Chord):
-            total += 1/self._changes.get(key, 1)
+            if key in self._changes:
+                total += 1/self._changes[key]
+            else:
+                # chord not yet tested, so take mean of goodness of two com-
+                # ponent chords
+                df = self.DataFrame
+                mean_changes = 0.5 * (df[key[0]].mean() + df[key[1]].mean())
+                total += 1/mean_changes
             
             if selected < total:
                 break
@@ -243,7 +266,10 @@ class Metronome():
         
         keybeat: emhpasize the first beat of each measure
         """
-                
+        
+        # end any running tasks
+        self.stop()
+        
         self._worker = threading.Thread(target=_metronome, args=(BPM, beats, keybeat, self._timer))
         
         self._worker.setDaemon(True)
@@ -261,15 +287,11 @@ def _metronome(BPM, beats, keybeats, timer):
     support function of self that is made its own thread for the metronome program
     """
     
-    interval = 60/BPM
-
-    #
-    # Setup spound
-    #
-    
     #
     # Start the metronome going!
     #
+
+    interval = 60/BPM
 
     timer.start(interval=interval)
 
@@ -281,13 +303,12 @@ def _metronome(BPM, beats, keybeats, timer):
             pass
         else:  
             if keybeats and i % beats == 0:
-                msg = r"#"
+                sys.stdout.write('\a')
             else:
-                msg = r"."
-    
-            sys.stdout.write(msg)
-            sys.stdout.flush()
+                sys.stdout.write('\a')
             
+            sys.stdout.flush()
+                
             i += 1
 
 # #############################################################################
@@ -305,7 +326,7 @@ class CountdownTimer():
     def __init__(self):
         self._timer = base_timer()
                 
-    def start(self, delay, display=True):
+    def start(self, delay, repeats=1, display=True):
         """
         Start a countdown for a time given by delay
         
@@ -316,37 +337,47 @@ class CountdownTimer():
         
         interval = 1
         
-        self._timer.start(
-                delay=delay,
-                interval=interval)
-        
-        t = None
-                
-        while self._timer.check():
-            try:
-                t = self._timer.countdown_queue.get(timeout=2*interval)
-            except:
-                pass
-            else:  
+        for j in range(repeats):
+            self._timer.start(
+                    delay=delay,
+                    interval=interval)
             
-                if display:
-                    if have_ipython:
-                        try:
-                            clear_output()
-                        except Exception:
-                            # terminal IPython has no clear_output
-                            pass
-        
-                    msg = r"Time Remaning: {0:.2f} s".format(t)
-        
-                    sys.stdout.write(msg)
-                    sys.stdout.flush()
-        
-        self._timer.wait()
+            t = None
+                    
+            while self._timer.check():
+                try:
+                    t = self._timer.countdown_queue.get(timeout=2*interval)
+                except:
+                    pass
+                else:  
+                
+                    if display:
+                        if have_ipython:
+                            try:
+                                clear_output()
+                            except Exception:
+                                # terminal IPython has no clear_output
+                                pass
+            
+                        msg = r"Time Remaning ({0}): {1:.2f} s".format(j, t)
+            
+                        sys.stdout.write(msg)
+                        sys.stdout.flush()
+            
+            if display:
+                sys.stdout.write('\a')
+                sys.stdout.flush()
+                
+            self._timer.wait()
      
             
-    def __call__(self, delay):
+    def __call__(self, *args, **kwargs):
         """
         When called we behave as a timer
         """
-        self.start(delay)
+        self.start(*args, **kwargs)
+        
+        
+t = CountdownTimer()
+c = Changes()
+m = Metronome()
