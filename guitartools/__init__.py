@@ -229,16 +229,21 @@ class Changes():
             for Pair in Pairs:
                 yield Pair
             
-    def SuggestAndTime(self, Chord=None, delay=60, display=True):
+    def SuggestAndTime(self, *args, ChordsOnly=True, delay=60, display=True):
         """
         I expext this will be the most used function called in this way
         
+        *args: chords to include as one part of changes if so desired.
+ 
+        ChordsOnly = True/False if False, also return the best score
+
+       
         c = Changes()
         c.SuggestAndTime()
         c.RecordChanges(changes)
         """
         
-        key = self.Suggest(Chord=Chord)
+        key = self.Suggest(*args, ChordsOnly=ChordsOnly)
         
         if display:
             print("Your chords are ", key)
