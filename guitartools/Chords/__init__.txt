@@ -1,0 +1,14 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun May 24 22:08:53 2015
+
+When imported this directory provides access to all of the contained .wav
+files as chords.  This is intended for use in chord sound recognition.
+"""
+
+#
+# OK, we will dynamically search the current directory for .wav files 
+# and provide external access to the resulting dictionary of the form
+# chords = {"name": FullPathToWave}
+# so that some other program can easily access the sound file
+#
