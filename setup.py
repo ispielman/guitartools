@@ -18,5 +18,5 @@ setup(
     author='Ian B. Spielman',
     author_email='ian.spielman@gmail.com',
     packages=['guitartools'],
-    install_requires=['ConfigObj', 'pygame'],
+    install_requires=['ConfigObj', 'pygame', 'qtutils', 'PyQt5'],
 )
