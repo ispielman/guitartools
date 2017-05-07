@@ -106,6 +106,13 @@ class Metronome(object):
         # Make a pygame sound object ready for playing
         self._clickloop = pygame.sndarray.make_sound(loop_array)
     
+    def update(self, *args, **kwargs):
+        """
+        If we are ticking, update, otherwise do nothing
+        """
+        
+        if self._started: self.start(*args, **kwargs)
+    
     def start(self, *args, **kwargs):
         """
         Start ticking.  Update to new settings if already ticking.  
@@ -121,5 +128,6 @@ class Metronome(object):
     
     def stop(self):
         # Stop playing:
-        self._clickloop.stop()
-        self._started = False
+        if self._started:
+            self._clickloop.stop()
+            self._started = False

@@ -23,31 +23,12 @@ Right now we keep a full history, which might be useful for something in the
 figure to look at plataueing for example.
 """
 
-import numpy as np
-
 import configobj
-import sys
-import os
 import time
 import random
 from pandas import DataFrame
 
-from guitartools.timing_utils import base_timer
-
-try:
-    import pygame.mixer, pygame.time, pygame.sndarray
-    
-except ImportError:
-    print("ERROR: PyGame needed to run this program. \
-          Please install it and try again")
-    sys.exit(2)
-
-# We are going to try to have nice information for the user during timers 
-try:
-    from IPython.core.display import clear_output
-    have_ipython = True
-except ImportError:
-    have_ipython = False
+from guitartools.CountdownTimer import CountdownTimer
 
 class Changes():
     """
