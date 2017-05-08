@@ -45,16 +45,19 @@
          </spacer>
         </item>
         <item>
-         <layout class="QFormLayout" name="formLayout">
-          <item row="0" column="0">
+         <layout class="QHBoxLayout" name="horizontalLayout_3">
+          <item>
            <widget class="QLabel" name="label">
             <property name="text">
              <string>Beats per minute (BPM)</string>
             </property>
            </widget>
           </item>
-          <item row="0" column="1">
+          <item>
            <widget class="QSpinBox" name="BPM_spinBox">
+            <property name="buttonSymbols">
+             <enum>QAbstractSpinBox::NoButtons</enum>
+            </property>
             <property name="minimum">
              <number>1</number>
             </property>
@@ -66,15 +69,18 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="0">
+          <item>
            <widget class="QLabel" name="label_2">
             <property name="text">
              <string>Beats per measure</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="1">
+          <item>
            <widget class="QSpinBox" name="Emph_spinBox">
+            <property name="buttonSymbols">
+             <enum>QAbstractSpinBox::NoButtons</enum>
+            </property>
             <property name="minimum">
              <number>1</number>
             </property>
@@ -112,6 +118,89 @@
       </widget>
      </widget>
     </item>
+    <item>
+     <widget class="QGroupBox" name="groupBox_Timer">
+      <property name="title">
+       <string>Timer</string>
+      </property>
+      <property name="flat">
+       <bool>false</bool>
+      </property>
+      <property name="checkable">
+       <bool>false</bool>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_6">
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_timer">
+         <item>
+          <widget class="QLabel" name="label_4">
+           <property name="text">
+            <string>Timer Duration (s)</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QSpinBox" name="spinBox_2">
+           <property name="buttonSymbols">
+            <enum>QAbstractSpinBox::NoButtons</enum>
+           </property>
+           <property name="minimum">
+            <number>1</number>
+           </property>
+           <property name="maximum">
+            <number>3600</number>
+           </property>
+           <property name="value">
+            <number>60</number>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_3">
+           <property name="text">
+            <string>Timer repeats</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QSpinBox" name="spinBox">
+           <property name="buttonSymbols">
+            <enum>QAbstractSpinBox::NoButtons</enum>
+           </property>
+           <property name="minimum">
+            <number>1</number>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_TimerStart">
+           <property name="text">
+            <string>Start</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_TimerStop">
+           <property name="text">
+            <string>Stop / Reset</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLCDNumber" name="lcdNumber_Timer"/>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QProgressBar" name="progressBar_Timer">
+         <property name="value">
+          <number>24</number>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -133,7 +222,11 @@
    </widget>
    <addaction name="menuFile"/>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QStatusBar" name="statusbar">
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+  </widget>
   <action name="actionSelect_Log_File">
    <property name="text">
     <string>Select Log FIle...</string>

@@ -78,6 +78,13 @@ class MainWindow():
         self.ui.actionQuit.triggered.connect(self.Quit)
 
         #
+        # Basic timer functionality
+        #
+
+        self.ui.timer = QtCore.QTimer()
+        self.ui.timer.timeout.connect(self.TimerUpdate)
+
+        #
         # Metronome
         #
         
@@ -117,6 +124,23 @@ class MainWindow():
             print(fileName)
         
         pass
+
+    #
+    # Timer methods
+    #
+
+    def TimerStart(self):
+        pass
+    
+    def TimerStop(self):
+        pass
+    
+    def TimerUpdate(self):
+        pass
+
+    #
+    # Metronome Methods
+    #
 
     def MetronomeUpdate(self):
         BPM = self.ui.BPM_spinBox.value()
