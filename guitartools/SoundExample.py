@@ -1,10 +1,12 @@
 from math import pi, sin
 import struct, sys
 
-from PyQt4.QtCore import QBuffer, QByteArray, QIODevice, Qt
-from PyQt4.QtGui import QApplication, QFormLayout, QLineEdit, QHBoxLayout, \
+from PyQt5.QtCore import QBuffer, QByteArray, QIODevice, Qt
+from PyQt5.QtWidgets import QApplication, QFormLayout, QLineEdit, QHBoxLayout, \
                         QPushButton, QSlider, QVBoxLayout, QWidget
-from PyQt4.QtMultimedia import QAudio, QAudioDeviceInfo, QAudioFormat, QAudioOutput
+from PyQt5.QtMultimedia import QAudio, QAudioDeviceInfo, QAudioFormat, QAudioOutput
+
+# QtWidgets
 
 class Window(QWidget):
 
@@ -12,17 +14,18 @@ class Window(QWidget):
     
         QWidget.__init__(self, parent)
         
-        format = QAudioFormat()
-        format.setChannels(1)
-        format.setFrequency(22050)
-        format.setSampleSize(16)
-        format.setCodec("audio/pcm")
-        format.setByteOrder(QAudioFormat.LittleEndian)
-        format.setSampleType(QAudioFormat.SignedInt)
-        self.output = QAudioOutput(format, self)
+        AudioFormat = QAudioFormat()
+        AudioFormat.setChannelCount(1)
+        AudioFormat.setSampleRate(22050)
+        AudioFormat.setSampleSize(16)
+        AudioFormat.setCodec("audio/pcm")
+        AudioFormat.setByteOrder(QAudioFormat.LittleEndian)
+        AudioFormat.setSampleType(QAudioFormat.SignedInt)
+        # self.output = QAudioOutput(AudioFormat, self)
+        self.output = QAudioOutput(AudioFormat)
         
         self.frequency = 440
-        self.volume = 0
+        self.volume = 32767
         self.buffer = QBuffer()
         self.data = QByteArray()
         
@@ -67,6 +70,8 @@ class Window(QWidget):
         if self.buffer.isOpen():
             self.buffer.close()
         
+        # This was important!
+        self.output.reset()
         self.createData()
         
         self.buffer.setData(self.data)
@@ -85,7 +90,7 @@ class Window(QWidget):
         # being 16 bits (2 bytes).
         
         self.data.clear()
-        for i in xrange(2 * 22050):
+        for i in range(2 * 22050):
             t = i / 22050.0
             value = int(self.volume * sin(2 * pi * self.frequency * t))
             self.data.append(struct.pack("<h", value))
