@@ -84,6 +84,10 @@ class MainWindow():
         self.ui.timer = QtCore.QTimer()
         self.ui.timer.timeout.connect(self.TimerUpdate)
 
+        self.ui.pushButton_TimerStart.clicked.connect(self.TimerStart)
+        self.ui.pushButton_TimerStop.clicked.connect(self.TimerStop)
+
+
         #
         # Metronome
         #
@@ -130,13 +134,27 @@ class MainWindow():
     #
 
     def TimerStart(self):
-        pass
+        start_time = self.ui.spinBox_Timer_Time.value()
+        self.ui.progressBar_Timer.setRange(0, start_time)
+        self.ui.progressBar_Timer.setValue(0)
+
+        self.ui.lcdNumber_Timer.value = start_time
+        
+        self.ui.timer.start(1000)
     
     def TimerStop(self):
-        pass
+        self.ui.timer.stop()
     
     def TimerUpdate(self):
-        pass
+        self.ui.progressBar_Timer.setValue(self.ui.progressBar_Timer.value() + 1)
+
+        self.ui.lcdNumber_Timer.value -= 1
+        self.ui.lcdNumber_Timer.display(self.ui.lcdNumber_Timer.value)
+        
+        
+        if self.ui.lcdNumber_Timer.value <= 0:
+            self.TimerStop()
+        
 
     #
     # Metronome Methods
