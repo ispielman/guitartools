@@ -92,13 +92,11 @@ class GuitarToolsMainWindow():
         self.ui.timer = QtCore.QTimer()
         self.ui.timer.timeout.connect(self.TimerUpdate)
 
-        self.ui.pushButton_TimerStart.clicked.connect(self.TimerStart)
-        self.ui.pushButton_TimerStop.clicked.connect(self.TimerStop)
+        self.ui.pushButton_TimerStartStop.clicked.connect(self.TimerStartStop)
+        self.ui.pushButton_TimerReset.clicked.connect(self.TimerReset)
 
         self._TimerReset()
-        
-        self._TimerPaused = False
-        
+                
         #
         # Metronome
         #
@@ -116,11 +114,16 @@ class GuitarToolsMainWindow():
         self.ui.MetronomeData = QtCore.QByteArray()
 
         self._make_click()
+        
+        self.ui.MetronomeBuffer.setData(self.ui.MetronomeData)
 
-        # Metronome timer
+        # Metronome Flash timer
         self.ui.MetronomeTimer = QtCore.QTimer()
         self.ui.MetronomeTimer.timeout.connect(self.MetronomeFlash)
         
+        # Metronome MetronomeUnFlash timer
+        self.ui.MetronomeUnFlashTimer = QtCore.QTimer()
+
         # Start / stop metronome
         self.ui.MetronomeStartStopButton.clicked.connect(self.MetronomeStartStop)
         
@@ -128,7 +131,8 @@ class GuitarToolsMainWindow():
         self.ui.BPM_spinBox.valueChanged.connect(self.MetronomeUpdate)
         self.ui.Emph_spinBox.valueChanged.connect(self.MetronomeUpdate)
 
-        self._MetronomeRunning = False
+        self._MetronomeIndex = 0
+        self._MetronomeVolume = 1.0
 
         #
         # Chord changes
@@ -182,24 +186,23 @@ class GuitarToolsMainWindow():
         self._TimerPaused = False
 
 
-    def TimerStart(self):
-        
-        if not self._TimerPaused:
-            self._TimerReset()
-            
-        self._TimerPaused = False
-        self.ui.timer.start(1000)
+    def TimerStartStop(self):
+        """
+        Start Stop button of a typical timer
+        """        
+        if  self.ui.timer.isActive():
+            self.ui.timer.stop()
+        else:            
+
+            self.ui.timer.start(1000)
+
     
-    def TimerStop(self):
+    def TimerReset(self):
         """
         Performs stop / reset action
         """
         
-        if self.ui.timer.isActive():
-            # Stop Behavior
-            self.ui.timer.stop()
-            self._TimerPaused = True
-        else:
+        if not self.ui.timer.isActive():
             # Reset Behavior
             self._TimerReset()
     
@@ -230,31 +233,42 @@ class GuitarToolsMainWindow():
     # Metronome Methods
     #
 
-    def MetronomeFlash(self):
-        state = self.ui.pushButton_Click.isDown()
-        if state:
-            self._play()
+    def MetronomeUnFlash(self):
+        self.ui.pushButton_Click.setDown(False)
 
-        self.ui.pushButton_Click.setDown(not state)
+    def MetronomeFlash(self):
         
+        # First start the current output
+        self._play()
+        
+        # Flash the strobe button.
+        self.ui.pushButton_Click.setDown(True)
+        self.ui.MetronomeUnFlashTimer.singleShot(100, self.MetronomeUnFlash)
+
+        # Now get ready for the next shot
+        self._MetronomeIndex += 1
+        emphasis = self.ui.Emph_spinBox.value()
+        
+        if self._MetronomeIndex % emphasis == 0:
+            self._MetronomeVolume = 1.0
+        else:
+            self._MetronomeVolume = 0.25
 
     def MetronomeUpdate(self):
-        BPM = self.ui.BPM_spinBox.value()
-        emphasis = self.ui.Emph_spinBox.value()
+        if self.ui.MetronomeTimer.isActive():
+            BPM = self.ui.BPM_spinBox.value()
+            self.ui.MetronomeTimer.start(60 / BPM * 1000) # BPM to ms
 
     def MetronomeStartStop(self):
         
-        if self._MetronomeRunning:
+        if self.ui.MetronomeTimer.isActive():
             self.ui.MetronomeTimer.stop()
-            self._MetronomeRunning = False
         else:
+            self._MetronomeIndex = 0
+            self._MetronomeVolume = 1.0
             BPM = self.ui.BPM_spinBox.value()
-            emphasis = self.ui.Emph_spinBox.value()
             
-            # twice as fast (half as long) because we need to turn the
-            # flasher on and off
-            self.ui.MetronomeTimer.start(60 / BPM * 1000 / 2) # BPM to ms
-            self._MetronomeRunning = True
+            self.ui.MetronomeTimer.start(60 / BPM * 1000) # BPM to ms
 
     def _play(self):
     
@@ -265,49 +279,39 @@ class GuitarToolsMainWindow():
             self.ui.MetronomeBuffer.close()
         
         # This was important!
-        self.ui.MetronomeOutput.reset()
-        self._createData()
-        
-        self.ui.MetronomeBuffer.setData(self.ui.MetronomeData)
+
         self.ui.MetronomeBuffer.open(QtCore.QIODevice.ReadOnly)
         self.ui.MetronomeBuffer.seek(0)
         
+        self.ui.MetronomeOutput.reset()
+        self.ui.MetronomeOutput.setVolume(self._MetronomeVolume)
         self.ui.MetronomeOutput.start(self.ui.MetronomeBuffer)
-        
-    def _createData(self):
-            
-        self.ui.MetronomeData.clear()
-        for value in self._click_array:
-            self.ui.MetronomeData.append(struct.pack("<h", value[0]))
-
-    def _createData2(self):
-    
-        # Create 0.2 seconds of data with 22050 samples per second, each sample
-        # being 16 bits (2 bytes).
-        
-        self.ui.MetronomeData.clear()
-        for i in range(2200):
-            t = i / 22050.0
-            value = int(32767 * np.sin(2 * np.pi * 440 * t))
-            self.ui.MetronomeData.append(struct.pack("<h", value))
-
 
     def _make_click(self):
 
         # make a 0.01 s click
         sample_rate = 44100
         channels = 1
-        duration = 0.1
+        duration = 0.025
         samples = int(sample_rate*duration)
         
         time_array = np.linspace(0, duration, samples)
         channels_array = np.zeros(channels)
         time_array = np.meshgrid(channels_array, time_array)[1]
         
-        sound_array = 2**15 * (np.sin(5*2*np.pi*time_array / duration) * 
+        #sound_array = 2**15 * (np.sin(5*2*np.pi*time_array / duration) * 
+        #               np.sin(np.pi*time_array / duration)**2 )
+
+        sound_array = 2**15 * (np.sin(2*np.pi*time_array*440) * 
                        np.sin(np.pi*time_array / duration)**2 )
+
                                     
         self._click_array = sound_array.astype(np.int16)
+
+        self.ui.MetronomeData.clear()
+        for value in self._click_array:
+            self.ui.MetronomeData.append(struct.pack("<h", value[0]))
+
                 
     #
     # Chord Changes
