@@ -28,7 +28,6 @@ import time
 import random
 from pandas import DataFrame
 
-from guitartools.CountdownTimer import CountdownTimer
 
 class Changes():
     """
@@ -49,7 +48,8 @@ class Changes():
 
     """
     
-    def __init__(self, filename='changes.ini'):
+    def __init__(self, filename=None):
+
         
         # Seed the random number generator
         random.seed()
@@ -57,18 +57,21 @@ class Changes():
         self._chords = []
         self._changes = {}
         
-        self._last_suggestion = None
+        self.SetFilename(filename)
                 
+       
+    def SetFilename(self, filename):
         self._filename = filename
         
+        self._chords = []
+        self._changes = {}
+               
         self._config = configobj.ConfigObj(infile=self._filename)
-        
-        self._countdown_timer = CountdownTimer()
         
         for k, v in self._config.items():
             self._add_changes(v)
         
-    def RecordChanges(self, Changes=1, Chord1=None, Chord2=None, NewChords=False):
+    def RecordChanges(self, Changes, Chord1, Chord2, NewChords=False):
         """
         User interface to record a new set of changes.
         
@@ -76,18 +79,7 @@ class Changes():
         """
         
         Changes = max(Changes, 1)
-        
-        if Chord1 is None and Chord2 is None:
-            try:
-                Chord1 = self._last_suggestion[0]
-                Chord2 = self._last_suggestion[1]
                 
-                self._last_suggestion = None
-            except:
-                raise RuntimeError('RecordChanges: No suggestion exists yet: need to pass Chords in this case')
-        elif Chord1 is None or Chord2 is None:
-            raise RuntimeError('RecordChanges: Need to pass two chords')
-        
         # Check new chords
         if not NewChords:
             if not (Chord1 in self._chords and Chord2 in self._chords):
@@ -105,7 +97,9 @@ class Changes():
         # Now save this to disk
         #
         
-        self._config.write()
+        if self._filename is not None:
+            self._config.write()
+            
         self._add_changes(self._config[DateTime])
 
     def _add_changes(self, changes):
@@ -167,6 +161,8 @@ class Changes():
         selected = total * random.random()
         
         total = 0
+        key = ("","")
+        
         for key in self._known_pairs(*args):
             if key in self._changes:
                 total += 1/self._changes[key]
@@ -179,9 +175,7 @@ class Changes():
             
             if selected < total:
                 break
-        
-        self._last_suggestion = key
-        
+                
         if ChordsOnly:
             return key
         else:
@@ -197,10 +191,9 @@ class Changes():
         num_chords = len(self._chords)
         
         if num_chords < 2:
-            msg = "Cannot generate pairs without two known chords"
-            raise ValueError(msg)
+            return
         
-        if len(args) == 0:
+        elif len(args) == 0:
             for i in range(num_chords-1):
                 for j in range(i+1, num_chords):
                     pair = tuple(sorted( [self._chords[i], self._chords[j]] ))
@@ -216,26 +209,3 @@ class Changes():
                         
             for Pair in Pairs:
                 yield Pair
-            
-    def SuggestAndTime(self, *args, ChordsOnly=True, delay=60, display=True):
-        """
-        I expext this will be the most used function called in this way
-        
-        *args: chords to include as one part of changes if so desired.
- 
-        ChordsOnly = True/False if False, also return the best score
-
-       
-        c = Changes()
-        c.SuggestAndTime()
-        c.RecordChanges(changes)
-        """
-        
-        key = self.Suggest(*args, ChordsOnly=ChordsOnly)
-        
-        if display:
-            print("Your chords are ", key)
-        
-        self._countdown_timer.start(5, display)
-        
-        self._countdown_timer.start(delay, display)
