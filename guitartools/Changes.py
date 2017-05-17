@@ -28,6 +28,7 @@ import time
 import random
 from pandas import DataFrame
 
+from guitartools.Support import UiLoader, LocalPath
 
 class Changes():
     """
@@ -43,13 +44,26 @@ class Changes():
 
     Since the storage requirement is modest we will keep this simple text based
     format.  
-    
-    By defaut we will take the filename "changes.ini" in the currend directory
-
     """
-    
-    def __init__(self, filename=None):
 
+    def __init__(self, GuitarTools):
+                
+        self.GuitarTools = GuitarTools
+        
+        loader = UiLoader()
+
+        self.ui = loader.load(LocalPath('changes.ui'))
+        
+        #
+        # Connect widgets!
+        #
+
+        # Chord changes
+        self.ui.pushButton_SuggestChanges.clicked.connect(self.SuggestChordChanges)
+
+        #
+        # Logic for actual suggesting of chord changes
+        #
         
         # Seed the random number generator
         random.seed()
@@ -57,9 +71,24 @@ class Changes():
         self._chords = []
         self._changes = {}
         
-        self.SetFilename(filename)
+        self.SetFilename(None)
+
                 
-       
+    #
+    # Chord Changes GUI
+    #
+    
+    def SuggestChordChanges(self):
+        Chords = self.Suggest()
+        
+        self.ui.lineEdit_Chord1.setText(Chords[0])
+        self.ui.lineEdit_Chord2.setText(Chords[1])
+
+    #
+    # Chord Changes main logic
+    #
+
+
     def SetFilename(self, filename):
         self._filename = filename
         
@@ -70,7 +99,7 @@ class Changes():
         
         for k, v in self._config.items():
             self._add_changes(v)
-        
+    
     def RecordChanges(self, Changes, Chord1, Chord2, NewChords=False):
         """
         User interface to record a new set of changes.

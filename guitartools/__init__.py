@@ -15,11 +15,3 @@ c.RecordChanges(changes) # This will write to disk!
 Right now we keep a full history, which might be useful for something in the 
 figure to look at plataueing for example.
 """
-
-from guitartools.Changes import Changes
-from guitartools.Metronome import Metronome
-from guitartools.CountdownTimer import CountdownTimer
-        
-t = CountdownTimer()
-c = Changes()
-m = Metronome()

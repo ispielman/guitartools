@@ -2,132 +2,146 @@
 """
 Created on Sun May 24 22:08:53 2015
 
-This file provides guitar pratice tools
+Metronome widget
 
 @author: Ian Spielman
 
-I expext this will be the most used function called in this way
-
-c = Changes()
-c.SuggestAndTime()
-c.RecordChanges(changes) # This will write to disk!  
-
-Right now we keep a full history, which might be useful for something in the 
-figure to look at plataueing for example.
+Provides metronome widget
 """
 
+import struct
 import numpy as np
 
-import sys
+from guitartools.Support import UiLoader, LocalPath
 
-try:
-    import pygame.mixer, pygame.time, pygame.sndarray
-    
-except ImportError:
-    print("ERROR: PyGame needed to run this program. \
-          Please install it and try again")
-    sys.exit(2)
+from PyQt5 import QtCore
+from PyQt5 import QtMultimedia
 
-# #############################################################################
-#
-# Metronome
-#
-# #############################################################################
+class Metronome():
+    def __init__(self, GuitarTools):
+        
+        self.GuitarTools = GuitarTools
+        
+        loader = UiLoader()
 
-class Metronome(object):
-    def __init__(self):
-        pygame.mixer.init()
+        self.ui = loader.load(LocalPath('metronome.ui'))
+        
+        #
+        # Connect widgets!
+        #
 
-        self._started = False
-    
-        # Get open the sound file for the click and get a numpy array of its
-        # raw samples
-        # path = os.path.join(os.path.split(__file__)[0], "Click.wav")
-        #click = pygame.mixer.Sound(path)
-        #self._click_array = np.array(click)       
-        # click, self._click_array
-        # self._sample_dt = click.get_length()/self._click_array.shape[0]
-    
+        # Metronome sound
+        AudioFormat = QtMultimedia.QAudioFormat()
+        AudioFormat.setChannelCount(1)
+        AudioFormat.setSampleRate(44100)
+        AudioFormat.setSampleSize(16)
+        AudioFormat.setCodec("audio/pcm")
+        AudioFormat.setByteOrder(QtMultimedia.QAudioFormat.LittleEndian)
+        AudioFormat.setSampleType(QtMultimedia.QAudioFormat.SignedInt)
+        self.ui.MetronomeOutput = QtMultimedia.QAudioOutput(AudioFormat)
+        self.ui.MetronomeBuffer = QtCore.QBuffer()
+        self.ui.MetronomeData = QtCore.QByteArray()
+
         self._make_click()
+        
+        self.ui.MetronomeBuffer.setData(self.ui.MetronomeData)
+
+        # Metronome Flash timer
+        self.ui.MetronomeTimer = QtCore.QTimer()
+        self.ui.MetronomeTimer.timeout.connect(self.MetronomeFlash)
+        
+        # Metronome MetronomeUnFlash timer
+        self.ui.MetronomeUnFlashTimer = QtCore.QTimer()
+
+        # Start / stop metronome
+        self.ui.MetronomeStartStopButton.clicked.connect(self.MetronomeStartStop)
+        
+        # Spinboxes: if metronome is running, change speed / emphasis based on changes
+        self.ui.BPM_spinBox.valueChanged.connect(self.MetronomeUpdate)
+        self.ui.Emph_spinBox.valueChanged.connect(self.MetronomeUpdate)
+
+        self._MetronomeIndex = 0
+        self._MetronomeVolume = 1.0
+
+    #
+    # Metronome Methods
+    #
+
+    def MetronomeUnFlash(self):
+        self.ui.pushButton_Click.setDown(False)
+
+    def MetronomeFlash(self):
+        
+        # First start the current output
+        self._play()
+        
+        # Flash the strobe button.
+        self.ui.pushButton_Click.setDown(True)
+        self.ui.MetronomeUnFlashTimer.singleShot(100, self.MetronomeUnFlash)
+
+        # Now get ready for the next shot
+        self._MetronomeIndex += 1
+        emphasis = self.ui.Emph_spinBox.value()
+        
+        if self._MetronomeIndex % emphasis == 0:
+            self._MetronomeVolume = 1.0
+        else:
+            self._MetronomeVolume = 0.25
+
+    def MetronomeUpdate(self):
+        if self.ui.MetronomeTimer.isActive():
+            BPM = self.ui.BPM_spinBox.value()
+            self.ui.MetronomeTimer.start(60 / BPM * 1000) # BPM to ms
+
+    def MetronomeStartStop(self):
+        
+        if self.ui.MetronomeTimer.isActive():
+            self.ui.MetronomeTimer.stop()
+        else:
+            self._MetronomeIndex = 0
+            self._MetronomeVolume = 1.0
+            BPM = self.ui.BPM_spinBox.value()
+            
+            self.ui.MetronomeTimer.start(60 / BPM * 1000) # BPM to ms
+
+    def _play(self):
     
+        if self.ui.MetronomeOutput.state() == QtMultimedia.QAudio.ActiveState:
+            self.ui.MetronomeOutput.stop()
+        
+        if self.ui.MetronomeBuffer.isOpen():
+            self.ui.MetronomeBuffer.close()
+        
+        # This was important!
+
+        self.ui.MetronomeBuffer.open(QtCore.QIODevice.ReadOnly)
+        self.ui.MetronomeBuffer.seek(0)
+        
+        self.ui.MetronomeOutput.reset()
+        self.ui.MetronomeOutput.setVolume(self._MetronomeVolume)
+        self.ui.MetronomeOutput.start(self.ui.MetronomeBuffer)
+
     def _make_click(self):
-        inited = pygame.mixer.get_init()
 
         # make a 0.01 s click
-        sample_rate = inited[0]
-        channels = inited[2]
-        # channels = pygame.mixer.get_num_channels()
-        duration = 0.01
+        sample_rate = 44100
+        channels = 1
+        duration = 0.025
         samples = int(sample_rate*duration)
         
         time_array = np.linspace(0, duration, samples)
         channels_array = np.zeros(channels)
         time_array = np.meshgrid(channels_array, time_array)[1]
         
-        sound_array = 2**15 * (np.sin(5*2*np.pi*time_array / duration) * 
+        #sound_array = 2**15 * (np.sin(5*2*np.pi*time_array / duration) * 
+        #               np.sin(np.pi*time_array / duration)**2 )
+
+        sound_array = 2**15 * (np.sin(2*np.pi*time_array*440) * 
                        np.sin(np.pi*time_array / duration)**2 )
+
                                     
-        sound_array = sound_array.astype(np.int16)
-        
-        sound = pygame.sndarray.make_sound(sound_array)
-        
-        self._sample_dt = sound.get_length()/sound_array.shape[0] 
-        self._click_array = sound_array
-    
-    def _generate_sound(self, bpm, emphasis=1):
-        beat_period = 60/bpm
-         
-        beat_nsamples = int(round(beat_period/self._sample_dt))
-        
-        # Truncate the audio of the click to ensure it's not longer than one
-        # beat. Crude way of making sure that when constructing the loop we
-        # don't write past the end of the array. Better approach would be to
-        # write whatever would go past the end of the array to the start of
-        # the array instead.
-        click_array = self._click_array[:beat_nsamples]
-        
-        # Make an array for audio long enough to contain the emphasis pattern:
-        loop_nsamples = int(round((emphasis * beat_nsamples)))
-        
-        loop_array = np.zeros((loop_nsamples,) + click_array.shape[1:],
-        dtype=click_array.dtype)
-        
-        
-        # First click emphasised:
-        loop_array[0:len(click_array)] += click_array
-        
-        # Remaining clicks not emphasised (here just done with a decrease in
-        # amplitude by a factor of 3):
-        for i in range(1, emphasis):
-            start_sample = i * beat_nsamples
-            stop_sample = start_sample + len(click_array)
-            loop_array[start_sample:stop_sample] += click_array//3
-        
-        # Make a pygame sound object ready for playing
-        self._clickloop = pygame.sndarray.make_sound(loop_array)
-    
-    def update(self, *args, **kwargs):
-        """
-        If we are ticking, update, otherwise do nothing
-        """
-        
-        if self._started: self.start(*args, **kwargs)
-    
-    def start(self, *args, **kwargs):
-        """
-        Start ticking.  Update to new settings if already ticking.  
-        """
-        
-        if self._started:
-            self.stop()
-        
-        # Start playing on a loop:
-        self._generate_sound(*args, **kwargs)
-        self._started = True
-        self._clickloop.play(-1)
-    
-    def stop(self):
-        # Stop playing:
-        if self._started:
-            self._clickloop.stop()
-            self._started = False
+        self._click_array = sound_array.astype(np.int16)
+
+        self.ui.MetronomeData.clear()
+        for value in self._click_array:
+            self.ui.MetronomeData.append(struct.pack("<h", value[0]))
