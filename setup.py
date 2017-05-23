@@ -14,9 +14,9 @@ except ImportError:
 setup(
     name="guitartools",
     description='Guitar Practice Tools',
-    version='0.0.1rc0',
+    version='0.0.2rc0',
     author='Ian B. Spielman',
     author_email='ian.spielman@gmail.com',
     packages=['guitartools'],
-    install_requires=['ConfigObj', 'pygame', 'qtutils', 'PyQt5'],
+    install_requires=['ConfigObj', 'PyQt5'],
 )

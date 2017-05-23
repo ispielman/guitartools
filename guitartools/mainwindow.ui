@@ -42,19 +42,25 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
-      <widget class="QWidget" name="Tab_Metronome">
+      <widget class="QWidget" name="tab_Metronome">
        <attribute name="title">
         <string>Metronome</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_Metronome"/>
       </widget>
-      <widget class="QWidget" name="Tab_Changes">
+      <widget class="QWidget" name="tab_Changes">
        <attribute name="title">
         <string>Chord Changes</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_Changes"/>
+      </widget>
+      <widget class="QWidget" name="tab_Listening">
+       <attribute name="title">
+        <string>Listening</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_Listening"/>
       </widget>
      </widget>
     </item>
@@ -88,6 +94,7 @@
      <string>File</string>
     </property>
     <addaction name="actionSelect_Log_File"/>
+    <addaction name="actionSave_Log_File"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
@@ -100,7 +107,7 @@
   </widget>
   <action name="actionSelect_Log_File">
    <property name="text">
-    <string>Select Log FIle...</string>
+    <string>Select Log File...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+O</string>
@@ -115,6 +122,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="actionSave_Log_File">
+   <property name="text">
+    <string>Save Log File</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
    </property>
   </action>
  </widget>

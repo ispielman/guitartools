@@ -29,6 +29,7 @@ import random
 from pandas import DataFrame
 
 from guitartools.Support import UiLoader, LocalPath
+from PyQt5 import QtGui
 
 class Changes():
     """
@@ -55,11 +56,19 @@ class Changes():
         self.ui = loader.load(LocalPath('changes.ui'))
         
         #
+        # Setup list view for known chords control
+        #
+        
+        self.ui.StandardItemModel_Chords = QtGui.QStandardItemModel(self.ui.listView_Chords)
+        self.ui.listView_Chords.setModel(self.ui.StandardItemModel_Chords)
+        
+        #
         # Connect widgets!
         #
 
-        # Chord changes
         self.ui.pushButton_SuggestChanges.clicked.connect(self.SuggestChordChanges)
+        self.ui.pushButton_RecordChanges.clicked.connect(self.RecordChordChanges)
+        self.ui.pushButton_NewChord.clicked.connect(self.NewChord)
 
         #
         # Logic for actual suggesting of chord changes
@@ -69,11 +78,13 @@ class Changes():
         random.seed()
         
         self._chords = []
+        self.UpdateChords()
+
         self._changes = {}
+        self._unsaved_changes = False
         
         self.SetFilename(None)
-
-                
+        
     #
     # Chord Changes GUI
     #
@@ -84,23 +95,89 @@ class Changes():
         self.ui.lineEdit_Chord1.setText(Chords[0])
         self.ui.lineEdit_Chord2.setText(Chords[1])
 
+    def RecordChordChanges(self):
+        
+        chord1 = self.ui.lineEdit_Chord1.text()
+        chord2 = self.ui.lineEdit_Chord2.text()
+        changes = self.ui.spinBox_Changes.value()
+
+        self.RecordChanges(changes, chord1, chord2)
+
+    def NewChord(self):
+        
+        chord = self.ui.lineEdit_NewChord.text()
+        self._addchords(chord)
+        self.UpdateChords()
+
+        self.ui.lineEdit_NewChord.setText('')
+
+
+    def UpdateChords(self):
+        """
+        Updates the GUI display for the chords
+        """
+        
+        self.ui.StandardItemModel_Chords.clear()
+        
+        for chord in self._chords:
+            item = QtGui.QStandardItem(chord)
+            item.setCheckable(True)
+            self.ui.StandardItemModel_Chords.appendRow(item)
+        
     #
     # Chord Changes main logic
     #
 
+    def _set_empty_config(self):
+        """
+        Returns the config to a safe empty state
+        """
+        self._config = configobj.ConfigObj()
+        self._config['chords'] = []
+        self._config['changes'] = {}
 
     def SetFilename(self, filename):
         self._filename = filename
         
-        self._chords = []
-        self._changes = {}
-               
-        self._config = configobj.ConfigObj(infile=self._filename)
         
-        for k, v in self._config.items():
-            self._add_changes(v)
+        if self._filename is not None:
+            try:
+                self._config = configobj.ConfigObj(infile=self._filename)
+                self._chords = self._config['chords']
+                self._chords = sorted(set(self._chords))
+
+                self._changes = {}
+                for k, v in self._config['changes'].items():
+                    self._add_changes(v)
+
+            except:
+                self.GuitarTools.ui.statusbar.showMessage("Invalid file: " + self._filename, 10000)
+
+                self._set_empty_config()
+                self._chords = []
+                self._changes = {}
+
+        else:
+            self._set_empty_config()
+            self._chords = []
+            self._changes = {}
+
+        self.UpdateChords()
     
-    def RecordChanges(self, Changes, Chord1, Chord2, NewChords=False):
+    def SaveChanges(self):
+        """
+        Save to disk
+        """
+        
+        self._config['chords'] = self._chords
+        
+        if self._filename is not None:
+            self._config.write()
+
+        self._unsaved_changes = False
+                        
+    
+    def RecordChanges(self, Changes, Chord1, Chord2):
         """
         User interface to record a new set of changes.
         
@@ -109,27 +186,33 @@ class Changes():
         
         Changes = max(Changes, 1)
                 
-        # Check new chords
-        if not NewChords:
-            if not (Chord1 in self._chords and Chord2 in self._chords):
-                raise RuntimeError('RecordChanges: New chord passed when NewChords not set')
+        if not Chord1 in self._chords:
+            self.GuitarTools.ui.statusbar.showMessage("Record Changes: Unknown Chord " + Chord1, 10000)
+            return
+
+        if not Chord2 in self._chords:
+            self.GuitarTools.ui.statusbar.showMessage("Record Changes: Unknown Chord " + Chord2, 10000)
+            return
+
                 
-        
-        DateTime = time.ctime()
-        self._config[DateTime] = {
+        idx = str(len(self._config['changes']))
+        self._config['changes'][idx] = {
                             'Chord1': Chord1,
                             'Chord2': Chord2,
-                            'Changes': Changes
+                            'Changes': Changes,
+                            'Date': time.ctime()
                             }
 
-        #
-        # Now save this to disk
-        #
+        self._add_changes(self._config['changes'][idx])
+
+        self._unsaved_changes = True
+
+    def _addchords(self, *kwargs):
+        for k in kwargs:
+            self._chords.append(str(k))
         
-        if self._filename is not None:
-            self._config.write()
+        self._chords = sorted(set(self._chords))
             
-        self._add_changes(self._config[DateTime])
 
     def _add_changes(self, changes):
         """
@@ -138,10 +221,9 @@ class Changes():
         """
         
         # Make sure these are in our sorted list of chords
-        self._chords.append(changes['Chord1'])
-        self._chords.append(changes['Chord2'])
-        self._chords = sorted(set(self._chords))
-        
+        self._addchords(changes['Chord1'], changes['Chord2'])
+        self.UpdateChords()
+
         pair = tuple(sorted( [changes['Chord1'], changes['Chord2']] ))
         best = int(self._changes.get(pair, 0))
         

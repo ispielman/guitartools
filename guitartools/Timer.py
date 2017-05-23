@@ -27,8 +27,7 @@ class Timer():
         self.ui.pushButton_TimerReset.clicked.connect(self.TimerReset)
 
         self._TimerReset()
-                            
-        
+                
     #
     # Timer methods
     #
@@ -53,16 +52,21 @@ class Timer():
         """        
         if  self.ui.timer.isActive():
             self.ui.timer.stop()
-        else:            
-
+            self._TimerPaused = True
+        else:
+            if not self._TimerPaused:
+                self._TimerReset()
+            
+            self._TimerPaused = False
             self.ui.timer.start(1000)
 
     def TimerStop(self):
         """
         Start the timer
         """        
-        if  self.ui.timer.isActive():
+        if self.ui.timer.isActive():
             self.ui.timer.stop()
+            self._TimerPaused = True
     
     def TimerReset(self):
         """

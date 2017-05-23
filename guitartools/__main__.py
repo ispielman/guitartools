@@ -16,6 +16,7 @@ from PyQt5 import QtWidgets
 from guitartools.Metronome import Metronome
 from guitartools.Timer import Timer
 from guitartools.Changes import Changes
+from guitartools.Listening import Listening
 
 from guitartools.Support import UiLoader, LocalPath
 
@@ -47,6 +48,11 @@ class GuitarToolsMainWindow():
         # Chord changes
         self.Changes = Changes(self)
         self.ui.verticalLayout_Changes.addWidget(self.Changes.ui)
+
+        # Listening
+        self.Listening = Listening(self)
+        self.ui.verticalLayout_Listening.addWidget(self.Listening.ui)
+
         
         #
         # Render menubar: work around a bug in osx where menubar is not active.
@@ -66,6 +72,7 @@ class GuitarToolsMainWindow():
         self.ui.actionSelect_Log_File.triggered.connect(self.SetLogFile)
         self._logfile = None
         
+        self.ui.actionSave_Log_File.triggered.connect(self.Changes.SaveChanges)
         
         # Quit
         self.ui.actionQuit.triggered.connect(self.Quit)
@@ -73,6 +80,7 @@ class GuitarToolsMainWindow():
         #
         # Setup complete.  Show the user interface
         #
+                
         self.ui.show()
 
 
