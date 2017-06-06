@@ -6,15 +6,17 @@ Created on Fri Apr 28 13:58:37 2017
 """
 
 
-from guitartools.Support import UiLoader, LocalPath
+from guitartools.Support import UiLoader, LocalPath, MakeAutoConfig
 
-class Listening():
+AutoConfig = MakeAutoConfig()
+class Listening(AutoConfig):
     """
     Play chords from a known menu to work on sound skills
     """
 
-    def __init__(self, GuitarTools):
-                
+    def __init__(self, GuitarTools, **kwargs):
+        super().__init__(**kwargs)
+        
         self.GuitarTools = GuitarTools
         
         loader = UiLoader()

@@ -12,13 +12,15 @@ Provides metronome widget
 import struct
 import numpy as np
 
-from guitartools.Support import UiLoader, LocalPath
+from guitartools.Support import UiLoader, LocalPath, MakeAutoConfig
 
 from PyQt5 import QtCore
 from PyQt5 import QtMultimedia
 
-class Metronome():
-    def __init__(self, GuitarTools):
+AutoConfig = MakeAutoConfig()
+class Metronome(AutoConfig):
+    def __init__(self, GuitarTools, **kwargs):
+        super().__init__(**kwargs)
         
         self.GuitarTools = GuitarTools
         

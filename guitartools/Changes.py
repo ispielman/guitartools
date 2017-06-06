@@ -23,15 +23,22 @@ Right now we keep a full history, which might be useful for something in the
 figure to look at plataueing for example.
 """
 
-import configobj
 import time
 import random
+import distutils.util
 from pandas import DataFrame
 
-from guitartools.Support import UiLoader, LocalPath
-from PyQt5 import QtGui
+from guitartools.Support import UiLoader, LocalPath, MakeAutoConfig
+from PyQt5 import QtWidgets, QtCore
 
-class Changes():
+#
+#
+# Main class
+#
+#
+
+AutoConfig = MakeAutoConfig()
+class Changes(AutoConfig):
     """
     Help guide me with the 1-minute (or whatever you want) changes exercies
     
@@ -47,7 +54,10 @@ class Changes():
     format.  
     """
 
-    def __init__(self, GuitarTools):
+    AutoConfig.Add('chords', {})
+    AutoConfig.Add('history', {})
+
+    def __init__(self, GuitarTools, **kwargs):
                 
         self.GuitarTools = GuitarTools
         
@@ -55,12 +65,18 @@ class Changes():
 
         self.ui = loader.load(LocalPath('changes.ui'))
         
+        # Load the UI before calling super
+        super().__init__(**kwargs)
+
         #
-        # Setup list view for known chords control
+        # Setup table widget (desire to subclass) TESTING!
         #
-        
-        self.ui.StandardItemModel_Chords = QtGui.QStandardItemModel(self.ui.listView_Chords)
-        self.ui.listView_Chords.setModel(self.ui.StandardItemModel_Chords)
+
+        self.ui.tableWidget_Chords.setColumnCount(3)
+        self.ui.tableWidget_Chords.setRowCount(0)
+        self.ui.tableWidget_Chords.setHorizontalHeaderLabels(["Active", "Required", "Chord"])
+        self.ui.tableWidget_Chords.resizeColumnsToContents()
+        self.ui.tableWidget_Chords.resizeRowsToContents()
         
         #
         # Connect widgets!
@@ -74,27 +90,94 @@ class Changes():
         # Logic for actual suggesting of chord changes
         #
         
+        self.history_best = {}
+        self._history = {}
+        
         # Seed the random number generator
         random.seed()
+    
+    @property
+    def history(self):
+        return self._history
+    
+    @history.setter
+    def history(self, value):
         
-        self._chords = []
-        self.UpdateChords()
+        self._history = value
+        
+        for k, v in value.items():
+            self.RebuildBest(v)
+            
 
-        self._changes = {}
-        self._unsaved_changes = False
+    @property
+    def chords(self):
+        rows = self.ui.tableWidget_Chords.rowCount()
         
-        self.SetFilename(None)
+        chords = {}
+        for row in range(rows):
+            data = {
+                    'active': self.ui.tableWidget_Chords.cellWidget(row, 0).isChecked(), 
+                    'required': self.ui.tableWidget_Chords.cellWidget(row, 1).isChecked()
+                    }
+            
+            chord = self.ui.tableWidget_Chords.item(row, 2).text()
+            chords[chord] = data
+            
+        return chords
+    
+    @chords.setter
+    def chords(self, chords):
+        # Really dumb approach that clears the table and re-adds all the chords
+
+        self.ui.tableWidget_Chords.setRowCount(0)
+
+        for name, chord in chords.items():
+            self.add_chord(name, 
+                           chord.get('active', True),
+                           chord.get('required', False),
+                           duplicate_check=False
+                           )
+
+    @property
+    def active_chords(self):
+        rows = self.ui.tableWidget_Chords.rowCount()
         
+        chords = {}
+        for row in range(rows):
+            data = {
+                    'active': self.ui.tableWidget_Chords.cellWidget(row, 0).isChecked(), 
+                    'required': self.ui.tableWidget_Chords.cellWidget(row, 1).isChecked()
+                    }
+            
+            if data['active']:
+                chord = self.ui.tableWidget_Chords.item(row, 2).text()
+                chords[chord] = data
+            
+        return chords
+
+
+    @property
+    def required_chords(self):
+        rows = self.ui.tableWidget_Chords.rowCount()
+        
+        chords = {}
+        for row in range(rows):
+            data = {
+                    'active': self.ui.tableWidget_Chords.cellWidget(row, 0).isChecked(), 
+                    'required': self.ui.tableWidget_Chords.cellWidget(row, 1).isChecked()
+                    }
+            
+            if data['required']:
+                chord = self.ui.tableWidget_Chords.item(row, 2).text()
+                chords[chord] = data
+            
+        return chords
+
+
     #
     # Chord Changes GUI
     #
     
-    def SuggestChordChanges(self):
-        Chords = self.Suggest()
-        
-        self.ui.lineEdit_Chord1.setText(Chords[0])
-        self.ui.lineEdit_Chord2.setText(Chords[1])
-
     def RecordChordChanges(self):
         
         chord1 = self.ui.lineEdit_Chord1.text()
@@ -106,76 +189,51 @@ class Changes():
     def NewChord(self):
         
         chord = self.ui.lineEdit_NewChord.text()
-        self._addchords(chord)
-        self.UpdateChords()
-
+        
+        self.add_chord(chord)
+        
         self.ui.lineEdit_NewChord.setText('')
 
-
-    def UpdateChords(self):
-        """
-        Updates the GUI display for the chords
-        """
-        
-        self.ui.StandardItemModel_Chords.clear()
-        
-        for chord in self._chords:
-            item = QtGui.QStandardItem(chord)
-            item.setCheckable(True)
-            self.ui.StandardItemModel_Chords.appendRow(item)
         
     #
     # Chord Changes main logic
     #
 
-    def _set_empty_config(self):
+    def add_chord(self, name, active=True, required=False, duplicate_check=True):
         """
-        Returns the config to a safe empty state
+        Add a chord to the table
+        
+        check for duplicates if directed by duplicate_check
+            This might be diabled when building the table from a dictionary
+            in which case we know that there are no duplicates.
         """
-        self._config = configobj.ConfigObj()
-        self._config['chords'] = []
-        self._config['changes'] = {}
 
-    def SetFilename(self, filename):
-        self._filename = filename
+        # check to see if this chord is already displayed
+        search = self.ui.tableWidget_Chords.findItems(name, QtCore.Qt.MatchFixedString)
+        if duplicate_check and len(search) != 0:
+            self.GuitarTools.ui.statusbar.showMessage(
+                    "Record Changes: Attempt to add duplicate chord " + name, 
+                    10000)
+                
+        # Add Chord to UI        
+        row = self.ui.tableWidget_Chords.rowCount()
+        self.ui.tableWidget_Chords.insertRow(row)
         
+        active_check = QtWidgets.QCheckBox(self.ui.tableWidget_Chords)
+        active_check.setChecked(distutils.util.strtobool(active))
         
-        if self._filename is not None:
-            try:
-                self._config = configobj.ConfigObj(infile=self._filename)
-                self._chords = self._config['chords']
-                self._chords = sorted(set(self._chords))
-
-                self._changes = {}
-                for k, v in self._config['changes'].items():
-                    self._add_changes(v)
-
-            except:
-                self.GuitarTools.ui.statusbar.showMessage("Invalid file: " + self._filename, 10000)
-
-                self._set_empty_config()
-                self._chords = []
-                self._changes = {}
-
-        else:
-            self._set_empty_config()
-            self._chords = []
-            self._changes = {}
-
-        self.UpdateChords()
-    
-    def SaveChanges(self):
-        """
-        Save to disk
-        """
+        required_check = QtWidgets.QCheckBox(self.ui.tableWidget_Chords)
+        required_check.setChecked(distutils.util.strtobool(required))
         
-        self._config['chords'] = self._chords
+        chord_name = QtWidgets.QTableWidgetItem(name)
+        chord_name.setFlags(QtCore.Qt.ItemIsEnabled)
         
-        if self._filename is not None:
-            self._config.write()
+        self.ui.tableWidget_Chords.setCellWidget(row, 0, active_check)
+        self.ui.tableWidget_Chords.setCellWidget(row, 1, required_check)
+        self.ui.tableWidget_Chords.setItem(row, 2, chord_name)
 
-        self._unsaved_changes = False
-                        
+        self.ui.tableWidget_Chords.resizeColumnsToContents()
+        
     
     def RecordChanges(self, Changes, Chord1, Chord2):
         """
@@ -185,50 +243,51 @@ class Changes():
         """
         
         Changes = max(Changes, 1)
-                
-        if not Chord1 in self._chords:
-            self.GuitarTools.ui.statusbar.showMessage("Record Changes: Unknown Chord " + Chord1, 10000)
+        
+        chords = self.chords
+        if not Chord1 in chords:
+            self.GuitarTools.ui.statusbar.showMessage(
+                    "Record Changes: Unknown Chord " + Chord1, 
+                    10000)
             return
 
-        if not Chord2 in self._chords:
-            self.GuitarTools.ui.statusbar.showMessage("Record Changes: Unknown Chord " + Chord2, 10000)
+        if not Chord2 in chords:
+            self.GuitarTools.ui.statusbar.showMessage(
+                    "Record Changes: Unknown Chord " + Chord2, 
+                    10000)
             return
 
+        key = self.ChordsString(Chord1, Chord2)
                 
-        idx = str(len(self._config['changes']))
-        self._config['changes'][idx] = {
-                            'Chord1': Chord1,
-                            'Chord2': Chord2,
+        chord_history = self.history.setdefault(key, {})
+
+        chord_history[time.ctime()] = {
                             'Changes': Changes,
-                            'Date': time.ctime()
                             }
 
-        self._add_changes(self._config['changes'][idx])
 
-        self._unsaved_changes = True
+        self.UpdateBest(chord_history, Changes)
 
-    def _addchords(self, *kwargs):
-        for k in kwargs:
-            self._chords.append(str(k))
-        
-        self._chords = sorted(set(self._chords))
-            
-
-    def _add_changes(self, changes):
+    def UpdateBest(self, chord_history, Changes):
         """
         take a dictionary for of changes and update the "best" changes dictionary
         with it
         """
         
-        # Make sure these are in our sorted list of chords
-        self._addchords(changes['Chord1'], changes['Chord2'])
-        self.UpdateChords()
-
-        pair = tuple(sorted( [changes['Chord1'], changes['Chord2']] ))
-        best = int(self._changes.get(pair, 0))
+        best = int(chord_history.get('Best', 0))
         
-        if int(changes['Changes']) > best:
-            self._changes[pair] = int(changes['Changes'])
+        chord_history['Best'] = max(Changes, best)
+
+    def RebuildBest(self, chord_history):
+        chord_history.pop('Best', None)
+        
+        best = 1
+        
+        for k, v in chord_history.items():
+            best = max(int(v['Changes']), best)
+            
+        chord_history['Best'] = best
+
     
     @property
     def DataFrame(self):
@@ -239,33 +298,30 @@ class Changes():
         history of changes over and over again, including duplicates and all.
         """
         
-        d = DataFrame(index=self._chords, columns=self._chords)
-        
-        for key, val in self._changes.items():
+        chords = list(self.chords.keys())
+        d = DataFrame(index=chords, columns=chords)
+                
+        for key, val in self.history_best.items():
             d.set_value(key[0], key[1], val)
             d.set_value(key[1], key[0], val)
         
         return d
-    
-    def Suggest(self, *args, ChordsOnly=True):
+
+    def SuggestChordChanges(self):
         """
         Ramdonly suggest a change to work on, with probabilities distributed 
         according to how bad we are at a changes
-        
-        *args : if desired draw only from any chords in *args, 
-        self.Suggest("A", "B"), for example.
-        
-        ChordsOnly = True/False if False, also return the best score
         """
                 
+        df = self.DataFrame
+
         total = 0
-        for key in self._known_pairs(*args):
-            if key in self._changes:
-                total += 1/self._changes[key]
+        for key in self._known_pairs():
+            if key in self.history:
+                total += 1/self.history[key]
             else:
                 # chord not yet tested, so take mean of goodness of two com-
                 # ponent chords
-                df = self.DataFrame
                 mean_changes = 0.5 * (df[key[0]].mean() + df[key[1]].mean())
                 total += 1/mean_changes
             
@@ -274,49 +330,58 @@ class Changes():
         total = 0
         key = ("","")
         
-        for key in self._known_pairs(*args):
-            if key in self._changes:
-                total += 1/self._changes[key]
+        for key in self._known_pairs():
+            if key in self.history:
+                total += 1/self.history[key]
             else:
                 # chord not yet tested, so take mean of goodness of two com-
                 # ponent chords
-                df = self.DataFrame
                 mean_changes = 0.5 * (df[key[0]].mean() + df[key[1]].mean())
                 total += 1/mean_changes
             
             if selected < total:
                 break
                 
-        if ChordsOnly:
-            return key
-        else:
-            return key, self._changes.get(key, 1)
+        self.ui.lineEdit_Chord1.setText(key[0])
+        self.ui.lineEdit_Chord2.setText(key[1])
 
-    def _known_pairs(self, *args):
+
+
+    def ChordsTuple(self, *args):
+        """
+        generates a sorted chord tuple from the list of chords provided
+        """
+        
+        return tuple(sorted( args ))
+
+    def ChordsString(self, *args):
+        """
+        generates a sorted chord string from the list of chords provided
+        """
+
+        return str(self.ChordsTuple(*args))
+
+    def _known_pairs(self):
         """
         a generator that yields a list of distinct chord pairs
         
-        *args : if desired draw only from any chords in *args, 
-        self._known_pairs("A", "B"), for example.
-        """
-        num_chords = len(self._chords)
+        if self.required_chords is non-empty, then one chord MUST be from this list
         
-        if num_chords < 2:
+        and all other chords must be from self.active_chords
+        """
+        
+        active_chords = self.active_chords
+        if len(active_chords) == 0:
             return
         
-        elif len(args) == 0:
-            for i in range(num_chords-1):
-                for j in range(i+1, num_chords):
-                    pair = tuple(sorted( [self._chords[i], self._chords[j]] ))
-                    yield pair
-        else:
-            # Using list rather than a set because I want an ordered result
-            Pairs = []
-            for Chord1 in args:
-                for Chord2 in self._chords:
-                    if Chord2 != Chord1:
-                        Pair = tuple(sorted( [Chord1, Chord2] ))
-                        if Pair not in Pairs: Pairs.append( Pair )
-                        
-            for Pair in Pairs:
-                yield Pair
+        required_chords = self.required_chords
+        if len(required_chords) == 0:
+            required_chords = active_chords.copy()
+        
+        for required_chord in required_chords:
+            
+            # Remove the cord being looped over to avoid double counting
+            active_chords.pop(required_chord, None)
+            
+            for active_chord in active_chords:
+                yield self.ChordsTuple(required_chord, active_chord)

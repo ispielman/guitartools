@@ -43,3 +43,98 @@ def LocalPath(filename):
     Returns an absolute path to 'filename' assuming it is in the local path
     """
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), filename)
+
+#
+# Ripped from qgas
+#
+
+from collections import OrderedDict
+
+def MakeAutoConfig():
+
+    class AutoConfigBase():
+        """
+        Partners with AutoConfig to setup AutoConfig system
+        """
+        
+        _autoconfig_on_init = True
+        
+        def __init__(self, autoconfig_name_key=None, **kwargs):
+            self._autoconfig_name_key = autoconfig_name_key
+        
+        @classmethod
+        def InitConfigVariables(cls, *args, **kwargs):
+            cls._autoconfig_kwargs = OrderedDict(*args, **kwargs)
+        
+        @classmethod
+        def Add(cls, key, val):
+            """
+            Add the desired parameter at the class level
+            """
+            cls._autoconfig_kwargs[key] = val
+    
+    class AutoConfig(AutoConfigBase):
+        """    
+        Allowed kwargs with defaults: this is an ordered dict so that
+        keywords with dependancies can be set later on
+        
+        followed by any setters or getters
+        required to control access to these quantitites
+        
+        by default we set state and get state from a dictionary containing
+        
+        kwargs = {
+                "parameter1": value1, 
+                "parameter2": value2, 
+                ...
+                }
+        
+        but if the kwarg "self._autoconfig_name_key" is set, then the structure
+        instead looks for
+    
+        kwargs[self._autoconfig_name_key] = {
+                "parameter1": value1, 
+                "parameter2": value2, 
+                ...
+                }
+    
+        this latter mode of operation is desired to enable the easy configuration
+        of many objects from the same dictionary.
+        
+        """
+            
+        AutoConfigBase.InitConfigVariables()
+    
+        def __init__(self, autoconfig_name_key=None, **kwargs):
+            super().__init__(autoconfig_name_key=autoconfig_name_key)
+            
+            if self._autoconfig_on_init:
+                self.set_state(**kwargs)
+                
+        def set_state(self, **kwargs):
+            
+            if self._autoconfig_name_key is not None:
+                state = kwargs.get(self._autoconfig_name_key, {})
+            else: 
+                state = kwargs
+            
+            for key, val in self._autoconfig_kwargs.items():
+                setattr(self, key, state.pop(key, val))
+            
+            if len(state) > 0:
+                keys = [key for key in state]
+                msg = "Invalid config options: {}".format(repr(keys))
+                raise ValueError(msg)
+            
+        def get_state(self):
+    
+            state = {}
+            for key in self._autoconfig_kwargs:
+                state[key] = getattr(self, key)
+    
+            if self._autoconfig_name_key is not None:
+                return {self._autoconfig_name_key: state}
+            else: 
+                return state
+
+    return AutoConfig
