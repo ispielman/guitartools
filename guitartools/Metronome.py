@@ -59,7 +59,10 @@ class Metronome(AutoConfig):
         self.ui.MetronomeStartStopButton.clicked.connect(self.MetronomeStartStop)
         
         # Spinboxes: if metronome is running, change speed / emphasis based on changes
+        self.ui.BPM_spinBox.setKeyboardTracking(False)
         self.ui.BPM_spinBox.valueChanged.connect(self.MetronomeUpdate)
+
+        self.ui.Emph_spinBox.setKeyboardTracking(False)
         self.ui.Emph_spinBox.valueChanged.connect(self.MetronomeUpdate)
 
         self._MetronomeIndex = 0
