@@ -134,24 +134,24 @@ class QTableWidgetMetronome(QtWidgets.QTableWidget):
         else:
             super().keyPressEvent(event)
 
-class QSignalLauncher(QtWidgets.QWidget):
-    """
-    This encapsulates a bunch of signals to allow non QWidget objects to emit
-    signals
-    """
-    
-    timerSettings = QtCore.pyqtSignal(object)
-    timerSettingsGo = QtCore.pyqtSignal()
-
 
 AutoConfig = MakeAutoConfig()
-class Metronome(AutoConfig):
+class Metronome(QtWidgets.QWidget, AutoConfig):
 
     #
     # signals
     #
+    timerSettings = QtCore.pyqtSignal(object)
+    timerSettingsGo = QtCore.pyqtSignal()
 
-    def __init__(self, GuitarTools, **kwargs):
+    def __init__(self, *args, **kwargs):
+        
+        # Setup widget
+        QtWidgets.QWidget.__init__(self, *args, **kwargs)
+        loader = UiLoader()
+        loader.registerCustomWidget(QTableWidgetMetronome)
+        loader.load(LocalPath('metronome.ui'), self)
+        
         #
         # Setup initial values
         #
@@ -161,16 +161,8 @@ class Metronome(AutoConfig):
         self._MetronomeLoud = True
         self._TimerConnected = False
 
-        super().__init__(**kwargs)
-        
-        self.GuitarTools = GuitarTools
-        
-        loader = UiLoader()
-        loader.registerCustomWidget(QTableWidgetMetronome)
-
-        self.ui = loader.load(LocalPath('metronome.ui'))
-        self.ui.timerSettings = QtCore.pyqtSignal(object)
-        self.ui.signalLauncher = QSignalLauncher(self.ui)
+        # Perform autoconfig
+        AutoConfig.__init__(self, autoconfig_name_key='metronome')
         
         #
         # Connect widgets!
@@ -184,36 +176,37 @@ class Metronome(AutoConfig):
         AudioFormat.setCodec("audio/pcm")
         AudioFormat.setByteOrder(QtMultimedia.QAudioFormat.LittleEndian)
         AudioFormat.setSampleType(QtMultimedia.QAudioFormat.SignedInt)
-        self.ui.MetronomeOutput = QtMultimedia.QAudioOutput(AudioFormat)
-        self.ui.MetronomeOutput.setVolume(1.0)
-        self.ui.MetronomeBuffer = QtCore.QBuffer()
-        self.ui.MetronomeDataQuiet = QtCore.QByteArray()
-        self.ui.MetronomeDataLoud = QtCore.QByteArray()
+        
+        self.MetronomeOutput = QtMultimedia.QAudioOutput(AudioFormat)
+        self.MetronomeOutput.setVolume(1.0)
+        self.MetronomeBuffer = QtCore.QBuffer()
+        self.MetronomeDataQuiet = QtCore.QByteArray()
+        self.MetronomeDataLoud = QtCore.QByteArray()
 
         self._make_click()
         
         # Metronome Flash timer
-        self.ui.MetronomeTimer = QtCore.QTimer()
+        self.MetronomeTimer = QtCore.QTimer()
         
         # Metronome MetronomeUnFlash timer
-        self.ui.MetronomeUnFlashTimer = QtCore.QTimer()
+        self.MetronomeUnFlashTimer = QtCore.QTimer()
 
         # Start / stop metronome
-        self.ui.comboBox_Metronome.currentIndexChanged.connect(self.MetronomeStartStop)
+        self.comboBox_Metronome.currentIndexChanged.connect(self.MetronomeStartStop)
         
         # Spinboxes: if metronome is running, change speed / emphasis based on changes
-        self.ui.BPM_spinBox.setKeyboardTracking(False)
-        self.ui.BPM_spinBox.valueChanged.connect(self.MetronomeUpdate)
+        self.BPM_spinBox.setKeyboardTracking(False)
+        self.BPM_spinBox.valueChanged.connect(self.MetronomeUpdate)
 
-        self.ui.Emph_spinBox.setKeyboardTracking(False)
-        self.ui.Emph_spinBox.valueChanged.connect(self.MetronomeUpdate)
+        self.Emph_spinBox.setKeyboardTracking(False)
+        self.Emph_spinBox.valueChanged.connect(self.MetronomeUpdate)
         
         # Table mode
-        self.ui.tableWidgetMetronome.setColumnCount(2)
-        self.ui.tableWidgetMetronome.setRowCount(0)
-        self.ui.tableWidgetMetronome.setHorizontalHeaderLabels(["BPM", "Duration"])
-        self.ui.tableWidgetMetronome.resizeColumnsToContents()
-        self.ui.tableWidgetMetronome.resizeRowsToContents()
+        self.tableWidgetMetronome.setColumnCount(2)
+        self.tableWidgetMetronome.setRowCount(0)
+        self.tableWidgetMetronome.setHorizontalHeaderLabels(["BPM", "Duration"])
+        self.tableWidgetMetronome.resizeColumnsToContents()
+        self.tableWidgetMetronome.resizeRowsToContents()
 
 
     #    
@@ -222,14 +215,14 @@ class Metronome(AutoConfig):
 
     @property
     def dynamicValues(self):
-        rows = self.ui.tableWidgetMetronome.rowCount()
+        rows = self.tableWidgetMetronome.rowCount()
         
         BPM = []
         Duration = []
         for row in range(rows):
             
-            BPM.append(int(self.ui.tableWidgetMetronome.item(row, 0).text()))
-            Duration.append(int(self.ui.tableWidgetMetronome.item(row, 1).text()))
+            BPM.append(int(self.tableWidgetMetronome.item(row, 0).text()))
+            Duration.append(int(self.tableWidgetMetronome.item(row, 1).text()))
             
         return {'BPM':BPM, 'Duration':Duration}
 
@@ -239,7 +232,7 @@ class Metronome(AutoConfig):
     #
 
     def MetronomeUnFlash(self):
-        self.ui.pushButton_Click.setDown(False)
+        self.pushButton_Click.setDown(False)
 
     def MetronomeFlash(self):
         
@@ -247,12 +240,12 @@ class Metronome(AutoConfig):
         self._play(self._MetronomeLoud)
         
         # Flash the strobe button.
-        self.ui.pushButton_Click.setDown(True)
-        self.ui.MetronomeUnFlashTimer.singleShot(100, self.MetronomeUnFlash)
+        self.pushButton_Click.setDown(True)
+        self.MetronomeUnFlashTimer.singleShot(100, self.MetronomeUnFlash)
 
         # Now get ready for the next shot
         self._MetronomeIndex += 1
-        emphasis = self.ui.Emph_spinBox.value()
+        emphasis = self.Emph_spinBox.value()
         
         if self._MetronomeIndex % emphasis == 0:
             self._MetronomeLoud = True
@@ -260,15 +253,15 @@ class Metronome(AutoConfig):
             self._MetronomeLoud = False
 
     def MetronomeUpdate(self):
-        if self.ui.MetronomeTimer.isActive():
-            BPM = self.ui.BPM_spinBox.value()
-            self.ui.MetronomeTimer.start(60 / BPM * 1000) # BPM to ms
+        if self.MetronomeTimer.isActive():
+            BPM = self.BPM_spinBox.value()
+            self.MetronomeTimer.start(60 / BPM * 1000) # BPM to ms
 
     def MetronomeStartStop(self, state):
                 
         if state == 0:
             # Stopped state
-            self.ui.MetronomeTimer.stop()
+            self.MetronomeTimer.stop()
             self._connect_timer(False)
             return
         
@@ -276,9 +269,9 @@ class Metronome(AutoConfig):
         
         self._MetronomeIndex = 0
         self._MetronomeVolume = 1.0
-        BPM = self.ui.BPM_spinBox.value()
+        BPM = self.BPM_spinBox.value()
         
-        self.ui.MetronomeTimer.start(60 / BPM * 1000) # BPM to ms
+        self.MetronomeTimer.start(60 / BPM * 1000) # BPM to ms
 
         if state == 1: # Started state
             self._connect_timer(True)
@@ -292,8 +285,8 @@ class Metronome(AutoConfig):
             # Send update signal to timer widget with
             # expected durations
 
-            self.ui.signalLauncher.timerSettings.emit(self.dynamicValues['Duration'])
-            self.ui.signalLauncher.timerSettingsGo.emit()
+            self.timerSettings.emit(self.dynamicValues['Duration'])
+            self.timerSettingsGo.emit()
         
             if self._externalTimerIndex >= 0:
                 self._connect_timer(True)
@@ -313,13 +306,13 @@ class Metronome(AutoConfig):
         if connect:
             # connect if needed
             if not self._TimerConnected:
-                self.ui.MetronomeTimer.timeout.connect(self.MetronomeFlash)
+                self.MetronomeTimer.timeout.connect(self.MetronomeFlash)
             
             self._TimerConnected = True
         else:
             # Disconnect if needed
             if self._TimerConnected:
-                self.ui.MetronomeTimer.timeout.disconnect()
+                self.MetronomeTimer.timeout.disconnect()
                 
             self._TimerConnected = False
             
@@ -331,7 +324,7 @@ class Metronome(AutoConfig):
     
         self._externalTimerIndex = int(index)
         
-        state = self.ui.comboBox_Metronome.currentIndex()
+        state = self.comboBox_Metronome.currentIndex()
         if state == 2:
             self._connect_timer(index != -1)        
         elif state == 3:
@@ -339,7 +332,7 @@ class Metronome(AutoConfig):
             # note that index is reversed indexed
 
             if index != -1:
-                self.ui.BPM_spinBox.setValue(self.dynamicValues['BPM'][-(index+1)])
+                self.BPM_spinBox.setValue(self.dynamicValues['BPM'][-(index+1)])
             
             
             self._connect_timer(index != -1)
@@ -350,22 +343,22 @@ class Metronome(AutoConfig):
 
     def _play(self, Loud=True):
     
-        if self.ui.MetronomeOutput.state() == QtMultimedia.QAudio.ActiveState:
-            self.ui.MetronomeOutput.stop()
+        if self.MetronomeOutput.state() == QtMultimedia.QAudio.ActiveState:
+            self.MetronomeOutput.stop()
         
-        if self.ui.MetronomeBuffer.isOpen():
-            self.ui.MetronomeBuffer.close()
+        if self.MetronomeBuffer.isOpen():
+            self.MetronomeBuffer.close()
         
         if Loud:
-            self.ui.MetronomeBuffer.setData(self.ui.MetronomeDataLoud)
+            self.MetronomeBuffer.setData(self.MetronomeDataLoud)
         else:
-            self.ui.MetronomeBuffer.setData(self.ui.MetronomeDataQuiet)
+            self.MetronomeBuffer.setData(self.MetronomeDataQuiet)
 
-        self.ui.MetronomeBuffer.open(QtCore.QIODevice.ReadOnly)
-        self.ui.MetronomeBuffer.seek(0)
+        self.MetronomeBuffer.open(QtCore.QIODevice.ReadOnly)
+        self.MetronomeBuffer.seek(0)
         
-        self.ui.MetronomeOutput.reset()
-        self.ui.MetronomeOutput.start(self.ui.MetronomeBuffer)
+        self.MetronomeOutput.reset()
+        self.MetronomeOutput.start(self.MetronomeBuffer)
 
     def _make_click(self):
 
@@ -388,14 +381,14 @@ class Metronome(AutoConfig):
                                     
         self._click_array = sound_array.astype(np.int16)
 
-        self.ui.MetronomeDataQuiet.clear()
-        self.ui.MetronomeDataLoud.clear()
+        self.MetronomeDataQuiet.clear()
+        self.MetronomeDataLoud.clear()
         for value in self._click_array:
-            self.ui.MetronomeDataQuiet.append(struct.pack("<h", value//4))
-            self.ui.MetronomeDataLoud.append(struct.pack("<h", value))
+            self.MetronomeDataQuiet.append(struct.pack("<h", value//4))
+            self.MetronomeDataLoud.append(struct.pack("<h", value))
         
         # Zero pad
         for value in self._click_array:
-            self.ui.MetronomeDataQuiet.append(struct.pack("<h", 0))
-            self.ui.MetronomeDataLoud.append(struct.pack("<h", 0))
+            self.MetronomeDataQuiet.append(struct.pack("<h", 0))
+            self.MetronomeDataLoud.append(struct.pack("<h", 0))
   

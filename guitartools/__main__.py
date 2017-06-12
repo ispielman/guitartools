@@ -56,21 +56,21 @@ class GuitarToolsMainWindow(AutoConfig):
         #
         # Metronome
         #
-        self.Metronome = Metronome(self, autoconfig_name_key='metronome')
-        self.ui.verticalLayout_Metronome.addWidget(self.Metronome.ui)
+        self.Metronome = Metronome()
+        self.ui.verticalLayout_Metronome.addWidget(self.Metronome)
         
         # Now link the metronome to the timer
         self.Timer.ui.progressBarNumber_Countdown.repeatTimeout.connect(
                 self.Metronome.externalTimerIndex
                 )
 
-        self.Metronome.ui.signalLauncher.timerSettings.connect(
+        self.Metronome.timerSettings.connect(
                 self.Timer.ui.progressBarNumber_Countdown.setTimes)
 
-        self.Metronome.ui.signalLauncher.timerSettingsGo.connect(
+        self.Metronome.timerSettingsGo.connect(
                 self.Timer.ui.progressBarNumber_Countdown.stop)
 
-        self.Metronome.ui.signalLauncher.timerSettingsGo.connect(
+        self.Metronome.timerSettingsGo.connect(
                 self.Timer.ui.progressBarNumber_Countdown.start)
         
         #
@@ -84,7 +84,6 @@ class GuitarToolsMainWindow(AutoConfig):
         #
         self.Listening = Listening(self, autoconfig_name_key='listening')
         self.ui.verticalLayout_Listening.addWidget(self.Listening.ui)
-
         
         #
         # Render menubar: work around a bug in osx where menubar is not active.
