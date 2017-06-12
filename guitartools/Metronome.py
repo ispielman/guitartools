@@ -14,19 +14,163 @@ import numpy as np
 
 from guitartools.Support import UiLoader, LocalPath, MakeAutoConfig
 
-from PyQt5 import QtCore
-from PyQt5 import QtMultimedia
+from PyQt5 import QtGui, QtCore, QtWidgets, QtMultimedia
+
+class _QStyledItemDelegateMetronome(QtWidgets.QStyledItemDelegate):
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+    
+    def eventFilter(self, obj, event):
+        """
+        we will not pass on tab key presses to the cell
+        """
+        
+        if type(event) == QtGui.QKeyEvent and event.key() == QtCore.Qt.Key_Tab:
+            return False
+
+        return super().eventFilter(obj, event)
+        
+
+class QTableWidgetMetronome(QtWidgets.QTableWidget):
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Link double click action
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(
+                self._clicked
+                )
+
+        self.itemChanged.connect(self._validItem)
+
+        self.delegate = _QStyledItemDelegateMetronome(self)
+        self.setItemDelegate(self.delegate)
+
+        
+
+    def _clicked(self, point):
+        row = self.row(self.itemAt(point))
+        
+        menu = QtWidgets.QMenu(self)
+        menu.addAction(self._actionCreate(row))
+        menu.addAction(self._actionRemove(row))
+        menu.exec_(QtGui.QCursor.pos())
+    
+    def _actionCreate(self, row):
+        """
+        return an action to create at the specified row
+        """
+    
+        actionCreate = QtWidgets.QAction("Create new item below...", self)
+    
+        def _createItem():
+            self.newItem(row)
+                
+        actionCreate.triggered.connect(_createItem)
+        
+        return actionCreate
+
+    def _actionRemove(self, row):
+        """
+        return an action to create at the specified row
+        """
+    
+        actionRemove = QtWidgets.QAction("Remove current item...", self)
+    
+        def _removeItem():
+            self.removeRow(row)
+            
+        actionRemove.triggered.connect(_removeItem)
+        
+        return actionRemove
+
+    def newItem(self, row, BPM="100", Duration="60"):
+        if row == -1 or row > self.rowCount():
+            new_row = self.rowCount()
+        else:
+            new_row = row+1
+            
+        self.insertRow(new_row)
+                
+        tableWidgetItem_Bpm = QtWidgets.QTableWidgetItem(BPM)
+        tableWidgetItem_Bpm.default = "100"
+
+        tableWidgetItem_Duration = QtWidgets.QTableWidgetItem(Duration)
+        tableWidgetItem_Duration.default = "60"
+
+        self.setItem(new_row, 0, tableWidgetItem_Bpm)
+        self.setItem(new_row, 1, tableWidgetItem_Duration)
+
+        self.resizeColumnsToContents()
+        
+    def _validItem(self, item):
+        
+        value = item.text()
+        
+        try:
+            x = int(value)
+            x = max(x, 1)
+            x = str(x)
+        except:
+            x = str(item.default)
+                        
+        item.setText(x)
+        
+    def keyPressEvent(self, event):
+        """
+        If we are at the last row, create a new one on tab
+        """
+        
+        if event.key() == QtCore.Qt.Key_Tab:
+            row = self.currentRow()
+            column = self.currentColumn()
+                                    
+            if (row == self.rowCount()-1) and (column == self.columnCount()-1):
+                self.newItem(row)
+            
+            super().keyPressEvent(event)
+        else:
+            super().keyPressEvent(event)
+
+class QSignalLauncher(QtWidgets.QWidget):
+    """
+    This encapsulates a bunch of signals to allow non QWidget objects to emit
+    signals
+    """
+    
+    timerSettings = QtCore.pyqtSignal(object)
+    timerSettingsGo = QtCore.pyqtSignal()
+
 
 AutoConfig = MakeAutoConfig()
 class Metronome(AutoConfig):
+
+    #
+    # signals
+    #
+
     def __init__(self, GuitarTools, **kwargs):
+        #
+        # Setup initial values
+        #
+
+        self._externalTimerIndex = -1
+        self._MetronomeIndex = 0
+        self._MetronomeLoud = True
+        self._TimerConnected = False
+
         super().__init__(**kwargs)
         
         self.GuitarTools = GuitarTools
         
         loader = UiLoader()
+        loader.registerCustomWidget(QTableWidgetMetronome)
 
         self.ui = loader.load(LocalPath('metronome.ui'))
+        self.ui.timerSettings = QtCore.pyqtSignal(object)
+        self.ui.signalLauncher = QSignalLauncher(self.ui)
         
         #
         # Connect widgets!
@@ -50,13 +194,12 @@ class Metronome(AutoConfig):
         
         # Metronome Flash timer
         self.ui.MetronomeTimer = QtCore.QTimer()
-        self.ui.MetronomeTimer.timeout.connect(self.MetronomeFlash)
         
         # Metronome MetronomeUnFlash timer
         self.ui.MetronomeUnFlashTimer = QtCore.QTimer()
 
         # Start / stop metronome
-        self.ui.MetronomeStartStopButton.clicked.connect(self.MetronomeStartStop)
+        self.ui.comboBox_Metronome.currentIndexChanged.connect(self.MetronomeStartStop)
         
         # Spinboxes: if metronome is running, change speed / emphasis based on changes
         self.ui.BPM_spinBox.setKeyboardTracking(False)
@@ -64,10 +207,33 @@ class Metronome(AutoConfig):
 
         self.ui.Emph_spinBox.setKeyboardTracking(False)
         self.ui.Emph_spinBox.valueChanged.connect(self.MetronomeUpdate)
+        
+        # Table mode
+        self.ui.tableWidgetMetronome.setColumnCount(2)
+        self.ui.tableWidgetMetronome.setRowCount(0)
+        self.ui.tableWidgetMetronome.setHorizontalHeaderLabels(["BPM", "Duration"])
+        self.ui.tableWidgetMetronome.resizeColumnsToContents()
+        self.ui.tableWidgetMetronome.resizeRowsToContents()
 
-        self._MetronomeIndex = 0
-        self._MetronomeLoud = True
 
+    #    
+    # TODO: Table needs to be populated from the ini file
+    #
+
+    @property
+    def dynamicValues(self):
+        rows = self.ui.tableWidgetMetronome.rowCount()
+        
+        BPM = []
+        Duration = []
+        for row in range(rows):
+            
+            BPM.append(int(self.ui.tableWidgetMetronome.item(row, 0).text()))
+            Duration.append(int(self.ui.tableWidgetMetronome.item(row, 1).text()))
+            
+        return {'BPM':BPM, 'Duration':Duration}
+
+    
     #
     # Metronome Methods
     #
@@ -98,16 +264,89 @@ class Metronome(AutoConfig):
             BPM = self.ui.BPM_spinBox.value()
             self.ui.MetronomeTimer.start(60 / BPM * 1000) # BPM to ms
 
-    def MetronomeStartStop(self):
-        
-        if self.ui.MetronomeTimer.isActive():
+    def MetronomeStartStop(self, state):
+                
+        if state == 0:
+            # Stopped state
             self.ui.MetronomeTimer.stop()
-        else:
-            self._MetronomeIndex = 0
-            self._MetronomeVolume = 1.0
-            BPM = self.ui.BPM_spinBox.value()
+            self._connect_timer(False)
+            return
+        
+        # All remaining states are "Started states"
+        
+        self._MetronomeIndex = 0
+        self._MetronomeVolume = 1.0
+        BPM = self.ui.BPM_spinBox.value()
+        
+        self.ui.MetronomeTimer.start(60 / BPM * 1000) # BPM to ms
+
+        if state == 1: # Started state
+            self._connect_timer(True)
+        elif state == 2: # External control state
+            if self._externalTimerIndex >= 0:
+                self._connect_timer(True)
+            else:
+                self._connect_timer(False)
+        elif state == 3:# Table control state
+
+            # Send update signal to timer widget with
+            # expected durations
+
+            self.ui.signalLauncher.timerSettings.emit(self.dynamicValues['Duration'])
+            self.ui.signalLauncher.timerSettingsGo.emit()
+        
+            if self._externalTimerIndex >= 0:
+                self._connect_timer(True)
+            else:
+                self._connect_timer(False)
+    
+    #
+    # External control 
+    #
+    
+    def _connect_timer(self, connect):
+        """
+        Connect or disconnect timer to flasher, but don't reconnect if already
+        connected
+        """
+        
+        if connect:
+            # connect if needed
+            if not self._TimerConnected:
+                self.ui.MetronomeTimer.timeout.connect(self.MetronomeFlash)
             
-            self.ui.MetronomeTimer.start(60 / BPM * 1000) # BPM to ms
+            self._TimerConnected = True
+        else:
+            # Disconnect if needed
+            if self._TimerConnected:
+                self.ui.MetronomeTimer.timeout.disconnect()
+                
+            self._TimerConnected = False
+            
+    def externalTimerIndex(self, index):
+        """
+        a slot for the index of the external timer.  This allows the external
+        timer to direct the metronome to click or not
+        """
+    
+        self._externalTimerIndex = int(index)
+        
+        state = self.ui.comboBox_Metronome.currentIndex()
+        if state == 2:
+            self._connect_timer(index != -1)        
+        elif state == 3:
+            # Update metronome settings from table based on current index
+            # note that index is reversed indexed
+
+            if index != -1:
+                self.ui.BPM_spinBox.setValue(self.dynamicValues['BPM'][-(index+1)])
+            
+            
+            self._connect_timer(index != -1)
+        
+    #
+    # Support Functions
+    #
 
     def _play(self, Loud=True):
     

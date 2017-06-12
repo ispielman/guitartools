@@ -39,23 +39,49 @@ class GuitarToolsMainWindow(AutoConfig):
 
         self.ui = loader.load(LocalPath('mainwindow.ui'), GuitarToolsWindow())
         
+        # #####################################################################
         #
         # Custom widgets
         # 
+        # #####################################################################
 
-        # Basic timer functionality
+        #
+        # Timer
+        #
         self.Timer = Timer(self, autoconfig_name_key='timer')
         self.ui.verticalLayout_Timer.addWidget(self.Timer.ui)
-                
+        self.Timer.ui.progressBarNumber_Countdown.beep.connect(
+                self.qt_application.beep
+                )
+        #
         # Metronome
+        #
         self.Metronome = Metronome(self, autoconfig_name_key='metronome')
         self.ui.verticalLayout_Metronome.addWidget(self.Metronome.ui)
+        
+        # Now link the metronome to the timer
+        self.Timer.ui.progressBarNumber_Countdown.repeatTimeout.connect(
+                self.Metronome.externalTimerIndex
+                )
 
+        self.Metronome.ui.signalLauncher.timerSettings.connect(
+                self.Timer.ui.progressBarNumber_Countdown.setTimes)
+
+        self.Metronome.ui.signalLauncher.timerSettingsGo.connect(
+                self.Timer.ui.progressBarNumber_Countdown.stop)
+
+        self.Metronome.ui.signalLauncher.timerSettingsGo.connect(
+                self.Timer.ui.progressBarNumber_Countdown.start)
+        
+        #
         # Chord changes
+        #
         self.Changes = Changes(self, autoconfig_name_key='changes')
         self.ui.verticalLayout_Changes.addWidget(self.Changes.ui)
 
+        #
         # Listening
+        #
         self.Listening = Listening(self, autoconfig_name_key='listening')
         self.ui.verticalLayout_Listening.addWidget(self.Listening.ui)
 
