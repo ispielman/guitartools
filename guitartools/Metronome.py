@@ -37,11 +37,14 @@ class QTableWidgetMetronome(QtWidgets.QTableWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        # Link double click action
+        # Link right click action to context menu
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(
                 self._clicked
                 )
+
+        # Link double click action to new item if clicked in no-mans land
+        
 
         self.itemChanged.connect(self._validItem)
 
@@ -133,6 +136,22 @@ class QTableWidgetMetronome(QtWidgets.QTableWidget):
             super().keyPressEvent(event)
         else:
             super().keyPressEvent(event)
+
+    def mouseDoubleClickEvent(self, event):
+        """
+        Make a new item when double clicking on empty table
+        """
+        
+        if event.button() == QtCore.Qt.LeftButton:
+            rows = self.rowCount()
+                        
+            if (rows == 0):
+                self.newItem(-1)
+            else:
+                super().mouseDoubleClickEvent(event)
+        else:
+            super().mouseDoubleClickEvent(event)
+
 
 
 AutoConfig = MakeAutoConfig()
