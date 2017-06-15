@@ -54,8 +54,8 @@ class Changes(AutoConfig):
     format.  
     """
 
-    AutoConfig.Add('chords', {})
     AutoConfig.Add('history', {})
+    AutoConfig.Add('chords', {})
 
     def __init__(self, GuitarTools, **kwargs):
                 
@@ -72,9 +72,14 @@ class Changes(AutoConfig):
         # Setup table widget (desire to subclass) TESTING!
         #
 
-        self.ui.tableWidget_Chords.setColumnCount(3)
+        self.ui.tableWidget_Chords.setColumnCount(5)
         self.ui.tableWidget_Chords.setRowCount(0)
-        self.ui.tableWidget_Chords.setHorizontalHeaderLabels(["Active", "Required", "Chord"])
+        self.ui.tableWidget_Chords.setHorizontalHeaderLabels(["Active", 
+                                                              "Required", 
+                                                              "Chord", 
+                                                              "Quality",
+                                                              "Pairs"
+                                                              ])
         self.ui.tableWidget_Chords.resizeColumnsToContents()
         self.ui.tableWidget_Chords.resizeRowsToContents()
         
@@ -90,7 +95,6 @@ class Changes(AutoConfig):
         # Logic for actual suggesting of chord changes
         #
         
-        self.history_best = {}
         self._history = {}
         
         # Seed the random number generator
@@ -117,7 +121,9 @@ class Changes(AutoConfig):
         for row in range(rows):
             data = {
                     'active': self.ui.tableWidget_Chords.cellWidget(row, 0).isChecked(), 
-                    'required': self.ui.tableWidget_Chords.cellWidget(row, 1).isChecked()
+                    'required': self.ui.tableWidget_Chords.cellWidget(row, 1).isChecked(),
+                    'quality': float(self.ui.tableWidget_Chords.item(row, 3).text()),
+                    'pairs': int(self.ui.tableWidget_Chords.item(row, 4).text())
                     }
             
             chord = self.ui.tableWidget_Chords.item(row, 2).text()
@@ -129,12 +135,18 @@ class Changes(AutoConfig):
     def chords(self, chords):
         # Really dumb approach that clears the table and re-adds all the chords
 
+        # rebuild chord quality assumes that the chord history is already set
+        chords = self.RebuildChordQuality(chords)
+
         self.ui.tableWidget_Chords.setRowCount(0)
 
         for name, chord in chords.items():
+            
             self.add_chord(name, 
-                           chord.get('active', True),
-                           chord.get('required', False),
+                           active=chord.get('active', True),
+                           required=chord.get('required', False),
+                           quality=chord.get('quality', 0.0),
+                           pairs=chord.get('pairs', 0),
                            duplicate_check=False
                            )
 
@@ -199,7 +211,7 @@ class Changes(AutoConfig):
     # Chord Changes main logic
     #
 
-    def add_chord(self, name, active=True, required=False, duplicate_check=True):
+    def add_chord(self, name, active=True, required=False, quality=0.0, pairs=0, duplicate_check=True):
         """
         Add a chord to the table
         
@@ -227,10 +239,20 @@ class Changes(AutoConfig):
         
         chord_name = QtWidgets.QTableWidgetItem(name)
         chord_name.setFlags(QtCore.Qt.ItemIsEnabled)
+
+        chord_quality = QtWidgets.QTableWidgetItem(
+                "{:.1f}".format(quality))
+        chord_quality.setFlags(QtCore.Qt.ItemIsEnabled)
+
+        chord_pairs = QtWidgets.QTableWidgetItem(
+                "{:d}".format(pairs))
+        chord_pairs.setFlags(QtCore.Qt.ItemIsEnabled)
         
         self.ui.tableWidget_Chords.setCellWidget(row, 0, active_check)
         self.ui.tableWidget_Chords.setCellWidget(row, 1, required_check)
         self.ui.tableWidget_Chords.setItem(row, 2, chord_name)
+        self.ui.tableWidget_Chords.setItem(row, 3, chord_quality)
+        self.ui.tableWidget_Chords.setItem(row, 4, chord_pairs)
 
         self.ui.tableWidget_Chords.resizeColumnsToContents()
         
@@ -282,62 +304,92 @@ class Changes(AutoConfig):
         chord_history.pop('Best', None)
         
         best = 1
-        
         for k, v in chord_history.items():
             best = max(int(v['Changes']), best)
             
         chord_history['Best'] = best
 
-    
-    @property
-    def DataFrame(self):
+    def RebuildChordQuality(self, chords):
         """
-        returns a dataframe representation of the curent data
+        Updates our estimate for the "quality" of each chord and the number
+        of pairs it appears in
         
-        this may end up being a limitation since we are recording the whole
-        history of changes over and over again, including duplicates and all.
+        I will define quality like q^-1 = mean(changes^-1) where we sum over all
+        the chords.  This way we strongly rate bad chords
         """
-        
-        chords = list(self.chords.keys())
-        d = DataFrame(index=chords, columns=chords)
                 
-        for key, val in self.history_best.items():
-            d.set_value(key[0], key[1], val)
-            d.set_value(key[1], key[0], val)
+        # Reset
+        for k, v in chords.items():
+            v['quality'] = 0.0
+            v['changes'] = 0
         
-        return d
+        # Compute
+        for key_string, val in self.history.items():
+            
+            # This key is a string, so we eval it
+            key = eval(key_string)
+            
+            changes = max(val['Best'], 1.0)
+            
+            # Both keys
+            chord = chords.get(key[0], {'quality': 0.0, 'pairs': 0})
+            pairs = chord.setdefault('pairs', 0)
+            quality = chord.setdefault('quality', 0.0)
+            chord['pairs'] = pairs + 1
+            chord['quality'] = quality + 1/changes
+            chords[key[0]] = chord
+
+            chord = chords.get(key[1], {'quality': 0.0, 'pairs': 0})
+            pairs = chord.setdefault('pairs', 0)
+            quality = chord.setdefault('quality', 0.0)
+            chord['pairs'] = pairs + 1
+            chord['quality'] = quality + 1/changes
+            chords[key[1]] = chord
+        
+        
+        # Noramlize
+        for k, v in chords.items():
+            if v['quality'] != 0:
+                v['quality'] = v['pairs'] / v['quality']
+        
+        return chords
 
     def SuggestChordChanges(self):
         """
         Ramdonly suggest a change to work on, with probabilities distributed 
         according to how bad we are at a changes
         """
-                
-        df = self.DataFrame
+        
+        chords = self.chords
 
-        total = 0
+        total = 0.0
         for key in self._known_pairs():
-            if key in self.history:
-                total += 1/self.history[key]
+
+            key_string = self.ChordsString(*key)
+            if key_string in self.history:
+                total += 1/self.history[key_string]['Best']
             else:
                 # chord not yet tested, so take mean of goodness of two com-
                 # ponent chords
-                mean_changes = 0.5 * (df[key[0]].mean() + df[key[1]].mean())
-                total += 1/mean_changes
+                
+                total += 0.5/max(chords[key[0]]['quality'], 1.0)
+                total += 0.5/max(chords[key[1]]['quality'], 1.0)
+                
             
         selected = total * random.random()
         
-        total = 0
-        key = ("","")
-        
+        total = 0.0  
         for key in self._known_pairs():
-            if key in self.history:
-                total += 1/self.history[key]
+            
+            key_string = self.ChordsString(*key)
+            if key_string in self.history:
+                total += 1/self.history[key_string]['Best']
             else:
                 # chord not yet tested, so take mean of goodness of two com-
                 # ponent chords
-                mean_changes = 0.5 * (df[key[0]].mean() + df[key[1]].mean())
-                total += 1/mean_changes
+                total += 0.5/max(chords[key[0]]['quality'], 1.0)
+                total += 0.5/max(chords[key[1]]['quality'], 1.0)
+                
             
             if selected < total:
                 break
