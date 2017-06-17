@@ -26,7 +26,6 @@ figure to look at plataueing for example.
 import time
 import random
 import distutils.util
-from pandas import DataFrame
 
 from guitartools.Support import UiLoader, LocalPath, MakeAutoConfig
 from PyQt5 import QtWidgets, QtCore
@@ -82,6 +81,14 @@ class Changes(AutoConfig):
                                                               ])
         self.ui.tableWidget_Chords.resizeColumnsToContents()
         self.ui.tableWidget_Chords.resizeRowsToContents()
+                        
+        #
+        # Setup combo boxes
+        #
+        
+        self.ui.comboBox_Chord1.setInsertPolicy(QtWidgets.QComboBox.InsertAlphabetically)
+        self.ui.comboBox_Chord2.setInsertPolicy(QtWidgets.QComboBox.InsertAlphabetically)
+        
         
         #
         # Connect widgets!
@@ -139,14 +146,16 @@ class Changes(AutoConfig):
         chords = self.RebuildChordQuality(chords)
 
         self.ui.tableWidget_Chords.setRowCount(0)
+        self.ui.comboBox_Chord1.clear()
+        self.ui.comboBox_Chord2.clear()
 
         for name, chord in chords.items():
             
             self.add_chord(name, 
                            active=chord.get('active', True),
                            required=chord.get('required', False),
-                           quality=chord.get('quality', 0.0),
-                           pairs=chord.get('pairs', 0),
+                           quality=float(chord.get('quality', 0.0)),
+                           pairs=int(chord.get('pairs', 0)),
                            duplicate_check=False
                            )
 
@@ -192,8 +201,8 @@ class Changes(AutoConfig):
     
     def RecordChordChanges(self):
         
-        chord1 = self.ui.lineEdit_Chord1.text()
-        chord2 = self.ui.lineEdit_Chord2.text()
+        chord1 = self.ui.comboBox_Chord1.currentText()
+        chord2 = self.ui.comboBox_Chord2.currentText()
         changes = self.ui.spinBox_Changes.value()
 
         self.RecordChanges(changes, chord1, chord2)
@@ -256,6 +265,12 @@ class Changes(AutoConfig):
 
         self.ui.tableWidget_Chords.resizeColumnsToContents()
         
+        #
+        # Add chord to comboboxes too
+        #
+        
+        self.ui.comboBox_Chord1.addItem(name)
+        self.ui.comboBox_Chord2.addItem(name)
     
     def RecordChanges(self, Changes, Chord1, Chord2):
         """
@@ -333,15 +348,15 @@ class Changes(AutoConfig):
             
             # Both keys
             chord = chords.get(key[0], {'quality': 0.0, 'pairs': 0})
-            pairs = chord.setdefault('pairs', 0)
-            quality = chord.setdefault('quality', 0.0)
+            pairs = int(chord.setdefault('pairs', 0))
+            quality = float(chord.setdefault('quality', 0.0))
             chord['pairs'] = pairs + 1
             chord['quality'] = quality + 1/changes
             chords[key[0]] = chord
 
             chord = chords.get(key[1], {'quality': 0.0, 'pairs': 0})
-            pairs = chord.setdefault('pairs', 0)
-            quality = chord.setdefault('quality', 0.0)
+            pairs = int(chord.setdefault('pairs', 0))
+            quality = float(chord.setdefault('quality', 0.0))
             chord['pairs'] = pairs + 1
             chord['quality'] = quality + 1/changes
             chords[key[1]] = chord
@@ -393,10 +408,12 @@ class Changes(AutoConfig):
             
             if selected < total:
                 break
-                
-        self.ui.lineEdit_Chord1.setText(key[0])
-        self.ui.lineEdit_Chord2.setText(key[1])
+        
+        line = self.ui.comboBox_Chord1.findText(key[0])
+        self.ui.comboBox_Chord1.setCurrentIndex(line)
 
+        line = self.ui.comboBox_Chord1.findText(key[1])
+        self.ui.comboBox_Chord2.setCurrentIndex(line)
 
 
     def ChordsTuple(self, *args):
