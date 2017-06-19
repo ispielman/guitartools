@@ -44,8 +44,6 @@ class QTableWidgetMetronome(QtWidgets.QTableWidget):
                 )
 
         # Link double click action to new item if clicked in no-mans land
-        
-
         self.itemChanged.connect(self._validItem)
 
         self.delegate = _QStyledItemDelegateMetronome(self)
@@ -89,7 +87,7 @@ class QTableWidgetMetronome(QtWidgets.QTableWidget):
         
         return actionRemove
 
-    def newItem(self, row, BPM="100", Duration="60"):
+    def newItem(self, row, BPM="100", Duration="60", Skipped="0%"):
         if row == -1 or row > self.rowCount():
             new_row = self.rowCount()
         else:
@@ -98,23 +96,37 @@ class QTableWidgetMetronome(QtWidgets.QTableWidget):
         self.insertRow(new_row)
                 
         tableWidgetItem_Bpm = QtWidgets.QTableWidgetItem(BPM)
+        tableWidgetItem_Bpm.min = "1"
         tableWidgetItem_Bpm.default = "100"
+        tableWidgetItem_Bpm.max = "240"
 
         tableWidgetItem_Duration = QtWidgets.QTableWidgetItem(Duration)
+        tableWidgetItem_Duration.min = "1"
         tableWidgetItem_Duration.default = "60"
+        tableWidgetItem_Duration.max = "3600"
+        
+        tableWidgetItem_Skipped = QtWidgets.QTableWidgetItem(Skipped)
+        tableWidgetItem_Skipped.min = "0"
+        tableWidgetItem_Skipped.default = "0"
+        tableWidgetItem_Skipped.max = "99"
+
 
         self.setItem(new_row, 0, tableWidgetItem_Bpm)
         self.setItem(new_row, 1, tableWidgetItem_Duration)
+        self.setItem(new_row, 2, tableWidgetItem_Skipped)
 
         self.resizeColumnsToContents()
         
     def _validItem(self, item):
         
         value = item.text()
+        min_value = item.min
+        max_value = item.max
         
         try:
             x = int(value)
-            x = max(x, 1)
+            x = max(x, int(min_value))
+            x = min(x, int(max_value))
             x = str(x)
         except:
             x = str(item.default)
@@ -221,9 +233,9 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
         self.Emph_spinBox.valueChanged.connect(self.MetronomeUpdate)
         
         # Table mode
-        self.tableWidgetMetronome.setColumnCount(2)
+        self.tableWidgetMetronome.setColumnCount(3)
         self.tableWidgetMetronome.setRowCount(0)
-        self.tableWidgetMetronome.setHorizontalHeaderLabels(["BPM", "Duration"])
+        self.tableWidgetMetronome.setHorizontalHeaderLabels(["BPM", "Duration", "Skipped"])
         self.tableWidgetMetronome.resizeColumnsToContents()
         self.tableWidgetMetronome.resizeRowsToContents()
 

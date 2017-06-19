@@ -334,9 +334,9 @@ class Changes(AutoConfig):
         """
                 
         # Reset
-        for k, v in chords.items():
-            v['quality'] = 0.0
-            v['changes'] = 0
+        for k in chords:
+            chords[k]['quality'] = 0.0
+            chords[k]['changes'] = 0
         
         # Compute
         for key_string, val in self.history.items():
