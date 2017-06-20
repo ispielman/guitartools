@@ -17,16 +17,20 @@ from guitartools.Support import UiLoader, LocalPath, MakeAutoConfig
 from PyQt5 import QtGui, QtCore, QtWidgets, QtMultimedia
 
 class _QStyledItemDelegateMetronome(QtWidgets.QStyledItemDelegate):
+
+    eventsToFilter = set([QtCore.Qt.Key_Tab, QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return])
+
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-    
+        
     def eventFilter(self, obj, event):
         """
         we will not pass on tab key presses to the cell
         """
         
-        if type(event) == QtGui.QKeyEvent and event.key() == QtCore.Qt.Key_Tab:
+        
+        if type(event) == QtGui.QKeyEvent and event.key() in self.eventsToFilter:
             return False
 
         return super().eventFilter(obj, event)
@@ -137,15 +141,29 @@ class QTableWidgetMetronome(QtWidgets.QTableWidget):
         """
         If we are at the last row, create a new one on tab
         """
-        
-        if event.key() == QtCore.Qt.Key_Tab:
+        key = event.key()
+        if key == QtCore.Qt.Key_Tab:
             row = self.currentRow()
             column = self.currentColumn()
                                     
             if (row == self.rowCount()-1) and (column == self.columnCount()-1):
                 self.newItem(row)
-            
+
             super().keyPressEvent(event)
+            
+        elif key == QtCore.Qt.Key_Enter or key == QtCore.Qt.Key_Return:
+            # On enter or return add a new row if at and
+            row = self.currentRow()
+            column = self.currentColumn()
+            
+            if row != -1:
+                # no action if no selection
+                if row == self.rowCount()-1:
+                    self.newItem(row)
+                
+                self.setCurrentCell(row+1, column)
+
+            
         else:
             super().keyPressEvent(event)
 
