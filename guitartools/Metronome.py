@@ -11,10 +11,20 @@ Provides metronome widget
 
 import struct
 import numpy as np
+import random
 
 from guitartools.Support import UiLoader, LocalPath, MakeAutoConfig
 
 from PyQt5 import QtGui, QtCore, QtWidgets, QtMultimedia
+
+#
+# Constants
+#
+
+SILENT = 0
+QUIET = 1
+LOUD = 2
+
 
 class _QStyledItemDelegateMetronome(QtWidgets.QStyledItemDelegate):
 
@@ -91,7 +101,7 @@ class QTableWidgetMetronome(QtWidgets.QTableWidget):
         
         return actionRemove
 
-    def newItem(self, row, BPM="100", Duration="60", Skipped="0%"):
+    def newItem(self, row, Duration="60", BPM="100", Emph='1', Skipped="0%"):
         if row == -1 or row > self.rowCount():
             new_row = self.rowCount()
         else:
@@ -99,15 +109,20 @@ class QTableWidgetMetronome(QtWidgets.QTableWidget):
             
         self.insertRow(new_row)
                 
+        tableWidgetItem_Duration = QtWidgets.QTableWidgetItem(Duration)
+        tableWidgetItem_Duration.min = "1"
+        tableWidgetItem_Duration.default = "60"
+        tableWidgetItem_Duration.max = "3600"
+
         tableWidgetItem_Bpm = QtWidgets.QTableWidgetItem(BPM)
         tableWidgetItem_Bpm.min = "1"
         tableWidgetItem_Bpm.default = "100"
         tableWidgetItem_Bpm.max = "240"
 
-        tableWidgetItem_Duration = QtWidgets.QTableWidgetItem(Duration)
-        tableWidgetItem_Duration.min = "1"
-        tableWidgetItem_Duration.default = "60"
-        tableWidgetItem_Duration.max = "3600"
+        tableWidgetItem_Emph = QtWidgets.QTableWidgetItem(Emph)
+        tableWidgetItem_Emph.min = "1"
+        tableWidgetItem_Emph.default = "1"
+        tableWidgetItem_Emph.max = "32"
         
         tableWidgetItem_Skipped = QtWidgets.QTableWidgetItem(Skipped)
         tableWidgetItem_Skipped.min = "0"
@@ -115,9 +130,10 @@ class QTableWidgetMetronome(QtWidgets.QTableWidget):
         tableWidgetItem_Skipped.max = "99"
 
 
-        self.setItem(new_row, 0, tableWidgetItem_Bpm)
-        self.setItem(new_row, 1, tableWidgetItem_Duration)
-        self.setItem(new_row, 2, tableWidgetItem_Skipped)
+        self.setItem(new_row, 0, tableWidgetItem_Duration)
+        self.setItem(new_row, 1, tableWidgetItem_Bpm)
+        self.setItem(new_row, 2, tableWidgetItem_Emph)
+        self.setItem(new_row, 3, tableWidgetItem_Skipped)
 
         self.resizeColumnsToContents()
         
@@ -187,6 +203,7 @@ class QTableWidgetMetronome(QtWidgets.QTableWidget):
 AutoConfig = MakeAutoConfig()
 class Metronome(QtWidgets.QWidget, AutoConfig):
 
+    
     #
     # signals
     #
@@ -229,6 +246,7 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
         self.MetronomeOutput = QtMultimedia.QAudioOutput(AudioFormat)
         self.MetronomeOutput.setVolume(1.0)
         self.MetronomeBuffer = QtCore.QBuffer()
+        self.MetronomeDataSilent = QtCore.QByteArray()
         self.MetronomeDataQuiet = QtCore.QByteArray()
         self.MetronomeDataLoud = QtCore.QByteArray()
 
@@ -249,11 +267,14 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
 
         self.Emph_spinBox.setKeyboardTracking(False)
         self.Emph_spinBox.valueChanged.connect(self.MetronomeUpdate)
-        
+
+        self.spinBox_Skipped.setKeyboardTracking(False)
+        self.spinBox_Skipped.valueChanged.connect(self.MetronomeUpdate)
+
         # Table mode
-        self.tableWidgetMetronome.setColumnCount(3)
+        self.tableWidgetMetronome.setColumnCount(4)
         self.tableWidgetMetronome.setRowCount(0)
-        self.tableWidgetMetronome.setHorizontalHeaderLabels(["BPM", "Duration", "Skipped"])
+        self.tableWidgetMetronome.setHorizontalHeaderLabels(["Duration", "BPM", "Beats per measure", "Skipped"])
         self.tableWidgetMetronome.resizeColumnsToContents()
         self.tableWidgetMetronome.resizeRowsToContents()
 
@@ -266,14 +287,18 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
     def dynamicValues(self):
         rows = self.tableWidgetMetronome.rowCount()
         
-        BPM = []
         Duration = []
+        BPM = []
+        Emph = []
+        Skipped = []
         for row in range(rows):
             
-            BPM.append(int(self.tableWidgetMetronome.item(row, 0).text()))
-            Duration.append(int(self.tableWidgetMetronome.item(row, 1).text()))
+            Duration.append(int(self.tableWidgetMetronome.item(row, 0).text()))
+            BPM.append(int(self.tableWidgetMetronome.item(row, 1).text()))
+            Emph.append(int(self.tableWidgetMetronome.item(row, 2).text()))
+            Skipped.append(int(self.tableWidgetMetronome.item(row, 3).text()))
             
-        return {'BPM':BPM, 'Duration':Duration}
+        return {'Duration':Duration, 'BPM':BPM, 'Emph': Emph, 'Skipped': Skipped}
 
     
     #
@@ -284,22 +309,28 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
         self.pushButton_Click.setDown(False)
 
     def MetronomeFlash(self):
-        
-        # First start the current output
+
+        # First start the current output (with volume set at the end of the
+        # last click).  Do this right away to minimize any latancy
         self._play(self._MetronomeLoud)
         
-        # Flash the strobe button.
-        self.pushButton_Click.setDown(True)
-        self.MetronomeUnFlashTimer.singleShot(100, self.MetronomeUnFlash)
+        #  Only flash if planning to click
+        if self._MetronomeLoud != SILENT:
+            # Flash the strobe button.
+            self.pushButton_Click.setDown(True)
+            self.MetronomeUnFlashTimer.singleShot(100, self.MetronomeUnFlash)
 
         # Now get ready for the next shot
         self._MetronomeIndex += 1
         emphasis = self.Emph_spinBox.value()
+        skipped = self.spinBox_Skipped.value()
         
-        if self._MetronomeIndex % emphasis == 0:
-            self._MetronomeLoud = True
+        if random.randrange(100) < skipped:
+            self._MetronomeLoud = SILENT
+        elif self._MetronomeIndex % emphasis == 0:
+            self._MetronomeLoud = LOUD
         else:
-            self._MetronomeLoud = False
+            self._MetronomeLoud = QUIET
 
     def MetronomeUpdate(self):
         if self.MetronomeTimer.isActive():
@@ -382,7 +413,8 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
 
             if index != -1:
                 self.BPM_spinBox.setValue(self.dynamicValues['BPM'][-(index+1)])
-            
+                self.Emph_spinBox.setValue(self.dynamicValues['Emph'][-(index+1)])
+                self.spinBox_Skipped.setValue(self.dynamicValues['Skipped'][-(index+1)])
             
             self._connect_timer(index != -1)
         
@@ -390,7 +422,7 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
     # Support Functions
     #
 
-    def _play(self, Loud=True):
+    def _play(self, Loud=LOUD):
     
         if self.MetronomeOutput.state() == QtMultimedia.QAudio.ActiveState:
             self.MetronomeOutput.stop()
@@ -398,10 +430,12 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
         if self.MetronomeBuffer.isOpen():
             self.MetronomeBuffer.close()
         
-        if Loud:
+        if Loud==LOUD:
             self.MetronomeBuffer.setData(self.MetronomeDataLoud)
-        else:
+        elif Loud==QUIET:
             self.MetronomeBuffer.setData(self.MetronomeDataQuiet)
+        else:
+            self.MetronomeBuffer.setData(self.MetronomeDataSilent) 
 
         self.MetronomeBuffer.open(QtCore.QIODevice.ReadOnly)
         self.MetronomeBuffer.seek(0)
@@ -411,9 +445,9 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
 
     def _make_click(self):
 
-        # make a 0.01 s click
+        # make a short click
         sample_rate = 44100
-        duration = 0.025
+        duration = 0.04
         frequency = 400
         sharpness = 0.5
         
@@ -421,23 +455,31 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
         
         time_array = np.linspace(0, duration, samples)
         
-        #sound_array = 2**15 * (np.sin(5*2*np.pi*time_array / duration) * 
-        #               np.sin(np.pi*time_array / duration)**2 )
-
         sound_array = 2**15 * (np.sin(2*np.pi*time_array*frequency) * 
                        np.abs(np.sin(np.pi*time_array / duration))**sharpness )
 
                                     
         self._click_array = sound_array.astype(np.int16)
 
+        self.MetronomeDataSilent.clear()
         self.MetronomeDataQuiet.clear()
         self.MetronomeDataLoud.clear()
+
+        # Zero pre-pad
         for value in self._click_array:
+            self.MetronomeDataSilent.append(struct.pack("<h", 0))
+            self.MetronomeDataQuiet.append(struct.pack("<h", 0))
+            self.MetronomeDataLoud.append(struct.pack("<h", 0))
+
+        # Data
+        for value in self._click_array:
+            self.MetronomeDataSilent.append(struct.pack("<h", 0))
             self.MetronomeDataQuiet.append(struct.pack("<h", value//4))
             self.MetronomeDataLoud.append(struct.pack("<h", value))
         
         # Zero pad
         for value in self._click_array:
+            self.MetronomeDataSilent.append(struct.pack("<h", 0))
             self.MetronomeDataQuiet.append(struct.pack("<h", 0))
             self.MetronomeDataLoud.append(struct.pack("<h", 0))
   

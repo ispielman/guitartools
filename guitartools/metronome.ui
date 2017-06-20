@@ -49,6 +49,9 @@
          <property name="minimum">
           <number>1</number>
          </property>
+         <property name="maximum">
+          <number>32</number>
+         </property>
          <property name="value">
           <number>1</number>
          </property>
@@ -115,7 +118,7 @@
        <item row="0" column="3">
         <widget class="QLabel" name="label_5">
          <property name="text">
-          <string>Skipped</string>
+          <string>Beats skipped</string>
          </property>
         </widget>
        </item>
@@ -126,6 +129,12 @@
          </property>
          <property name="suffix">
           <string>%</string>
+         </property>
+         <property name="maximum">
+          <number>100</number>
+         </property>
+         <property name="value">
+          <number>0</number>
          </property>
         </widget>
        </item>
