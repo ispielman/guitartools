@@ -68,6 +68,9 @@
        <property name="buttonSymbols">
         <enum>QAbstractSpinBox::NoButtons</enum>
        </property>
+       <property name="suffix">
+        <string> s</string>
+       </property>
        <property name="minimum">
         <number>1</number>
        </property>

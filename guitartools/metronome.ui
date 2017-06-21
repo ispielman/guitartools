@@ -17,13 +17,6 @@
    <item>
     <layout class="QVBoxLayout" name="verticalLayout">
      <item>
-      <widget class="QLabel" name="label_4">
-       <property name="text">
-        <string>TODO: add &quot;skipped percentage&quot;  functionality</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QPushButton" name="pushButton_Click">
        <property name="enabled">
         <bool>false</bool>

@@ -201,11 +201,15 @@ class Changes(AutoConfig):
     
     def RecordChordChanges(self):
         
-        chord1 = self.ui.comboBox_Chord1.currentText()
-        chord2 = self.ui.comboBox_Chord2.currentText()
         changes = self.ui.spinBox_Changes.value()
 
-        self.RecordChanges(changes, chord1, chord2)
+        if changes > 0:
+            chord1 = self.ui.comboBox_Chord1.currentText()
+            chord2 = self.ui.comboBox_Chord2.currentText()
+    
+            self.RecordChanges(changes, chord1, chord2)
+            
+            changes = self.ui.spinBox_Changes.setValue(0)
 
     def NewChord(self):
         
@@ -336,14 +340,13 @@ class Changes(AutoConfig):
         # Reset
         for k in chords:
             chords[k]['quality'] = 0.0
-            chords[k]['changes'] = 0
+            chords[k]['pairs'] = 0
         
         # Compute
         for key_string, val in self.history.items():
             
             # This key is a string, so we eval it
             key = eval(key_string)
-            
             changes = max(val['Best'], 1.0)
             
             # Both keys
@@ -361,11 +364,11 @@ class Changes(AutoConfig):
             chord['quality'] = quality + 1/changes
             chords[key[1]] = chord
         
-        
         # Noramlize
         for k, v in chords.items():
             if v['quality'] != 0:
                 v['quality'] = v['pairs'] / v['quality']
+
         
         return chords
 

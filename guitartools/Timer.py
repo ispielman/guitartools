@@ -57,6 +57,9 @@ class QProgressBarNumber(QtWidgets.QWidget):
         self.Time = QtWidgets.QSpinBox()
         self.Time.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
         self.Time.setReadOnly(True)
+        self.Time.setRange(0, 3600)
+        self.Time.setSuffix(' s')
+        self.Time.setValue(0)
         font = self.Time.font()
         font.setBold(True)
         
