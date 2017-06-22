@@ -97,6 +97,13 @@
       </spacer>
      </item>
      <item>
+      <widget class="QPushButton" name="pushButton_SuggestChanges">
+       <property name="text">
+        <string>Suggest Changes</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <layout class="QGridLayout" name="gridLayout">
        <item row="1" column="0">
         <widget class="QComboBox" name="comboBox_Chord1"/>
@@ -122,13 +129,6 @@
      </item>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_2">
-       <item>
-        <widget class="QPushButton" name="pushButton_SuggestChanges">
-         <property name="text">
-          <string>Suggest Changes</string>
-         </property>
-        </widget>
-       </item>
        <item>
         <spacer name="horizontalSpacer_3">
          <property name="orientation">
