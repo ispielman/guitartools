@@ -94,7 +94,6 @@ class GuitarToolsMainWindow(AutoConfig):
         # Window Title
         self._SetWindowTitle()
 
-
         #
         # Connect widgets!
         #

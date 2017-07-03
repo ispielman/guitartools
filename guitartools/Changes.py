@@ -31,6 +31,21 @@ from guitartools.Support import UiLoader, LocalPath, MakeAutoConfig
 from PyQt5 import QtWidgets, QtCore
 
 #
+# Helper
+#
+
+def strtobool(x):
+    """
+    Attempts to convert x to a bool
+    """
+    
+    if type(x) == str:
+        return distutils.util.strtobool(x)
+    else:
+        return bool(x)
+
+
+#
 #
 # Main class
 #
@@ -79,9 +94,19 @@ class Changes(AutoConfig):
                                                               "Quality",
                                                               "Pairs"
                                                               ])
+        self.ui.tableWidget_Chords.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)                      
         self.ui.tableWidget_Chords.resizeColumnsToContents()
         self.ui.tableWidget_Chords.resizeRowsToContents()
-                        
+
+        # set horizontal header properties
+        hh = self.ui.tableWidget_Chords.horizontalHeader()
+        hh.setStretchLastSection(False)
+
+        # Changes table
+        self.ui.tableWidget_Changes.resizeColumnsToContents()
+        self.ui.tableWidget_Changes.resizeRowsToContents()
+
+
         #
         # Setup combo boxes
         #
@@ -118,8 +143,7 @@ class Changes(AutoConfig):
         
         for k, v in value.items():
             self.RebuildBest(v)
-            
-
+        
     @property
     def chords(self):
         rows = self.ui.tableWidget_Chords.rowCount()
@@ -149,15 +173,58 @@ class Changes(AutoConfig):
         self.ui.comboBox_Chord1.clear()
         self.ui.comboBox_Chord2.clear()
 
-        for name, chord in chords.items():
+        for name in sorted(chords.keys()):
+            chord = chords[name]
             
-            self.add_chord(name, 
+            row = self.add_chord(name, 
                            active=chord.get('active', True),
                            required=chord.get('required', False),
                            quality=float(chord.get('quality', 0.0)),
                            pairs=int(chord.get('pairs', 0)),
                            duplicate_check=False
                            )
+            
+            # Used to know where in the table this chord is stored.
+            chord['index'] = row
+
+        self.ui.tableWidget_Chords.resizeColumnsToContents()
+        self.ui.tableWidget_Chords.resizeRowsToContents()
+            
+        #
+        # Now add chords to the BestTable
+        #
+        
+        rows = self.ui.tableWidget_Chords.rowCount()
+        
+        self.ui.tableWidget_Changes.setColumnCount(rows)
+        self.ui.tableWidget_Changes.setRowCount(rows)
+
+        labels = [self.ui.tableWidget_Chords.item(row, 2).text() for row in range(rows)]
+
+        label_index = {chord:i for i, chord in enumerate(labels)}
+
+        self.ui.tableWidget_Changes.setHorizontalHeaderLabels(labels)
+        self.ui.tableWidget_Changes.setVerticalHeaderLabels(labels)
+
+        # Now populate the table
+
+        for k, v in self._history.items():
+            chord1, chord2 = eval(k)
+
+            index1 = label_index.get(chord1, None)
+            index2 = label_index.get(chord2, None)
+            
+            QTableWidgetItem_best1 = QtWidgets.QTableWidgetItem(str(v['Best']))
+            QTableWidgetItem_best2 = QtWidgets.QTableWidgetItem(str(v['Best']))
+            QTableWidgetItem_best1.setFlags(QtCore.Qt.ItemIsEnabled)
+            QTableWidgetItem_best2.setFlags(QtCore.Qt.ItemIsEnabled)
+
+            self.ui.tableWidget_Changes.setItem(index1, index2, QTableWidgetItem_best1)
+            self.ui.tableWidget_Changes.setItem(index2, index1, QTableWidgetItem_best2)
+
+        self.ui.tableWidget_Changes.resizeColumnsToContents()
+        self.ui.tableWidget_Changes.resizeRowsToContents()
+
 
     @property
     def active_chords(self):
@@ -231,6 +298,8 @@ class Changes(AutoConfig):
         check for duplicates if directed by duplicate_check
             This might be diabled when building the table from a dictionary
             in which case we know that there are no duplicates.
+            
+        returns the row that was added
         """
 
         # check to see if this chord is already displayed
@@ -239,16 +308,17 @@ class Changes(AutoConfig):
             self.GuitarTools.ui.statusbar.showMessage(
                     "Record Changes: Attempt to add duplicate chord " + name, 
                     10000)
-                
+            return -1
+        
         # Add Chord to UI        
         row = self.ui.tableWidget_Chords.rowCount()
         self.ui.tableWidget_Chords.insertRow(row)
         
         active_check = QtWidgets.QCheckBox(self.ui.tableWidget_Chords)
-        active_check.setChecked(distutils.util.strtobool(active))
+        active_check.setChecked(strtobool(active))
         
         required_check = QtWidgets.QCheckBox(self.ui.tableWidget_Chords)
-        required_check.setChecked(distutils.util.strtobool(required))
+        required_check.setChecked(strtobool(required))
         
         chord_name = QtWidgets.QTableWidgetItem(name)
         chord_name.setFlags(QtCore.Qt.ItemIsEnabled)
@@ -275,6 +345,8 @@ class Changes(AutoConfig):
         
         self.ui.comboBox_Chord1.addItem(name)
         self.ui.comboBox_Chord2.addItem(name)
+        
+        return row
     
     def RecordChanges(self, Changes, Chord1, Chord2):
         """

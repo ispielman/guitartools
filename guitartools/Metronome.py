@@ -412,10 +412,13 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
             # note that index is reversed indexed
 
             if index != -1:
-                self.BPM_spinBox.setValue(self.dynamicValues['BPM'][-(index+1)])
-                self.Emph_spinBox.setValue(self.dynamicValues['Emph'][-(index+1)])
-                self.spinBox_Skipped.setValue(self.dynamicValues['Skipped'][-(index+1)])
-            
+                try:
+                    self.BPM_spinBox.setValue(self.dynamicValues['BPM'][-(index+1)])
+                    self.Emph_spinBox.setValue(self.dynamicValues['Emph'][-(index+1)])
+                    self.spinBox_Skipped.setValue(self.dynamicValues['Skipped'][-(index+1)])
+                except:
+                    self._connect_timer(False)
+                    
             self._connect_timer(index != -1)
         
     #
