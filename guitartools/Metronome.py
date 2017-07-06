@@ -70,6 +70,9 @@ class QTableWidgetMetronome(QtWidgets.QTableWidget):
         """
         Sets the widget's width perfectally to match it;s contents
         """
+
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
         
         width = 0
         width += self.verticalHeader().width()
@@ -308,8 +311,6 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
         self.tableWidgetMetronome.setColumnCount(4)
         self.tableWidgetMetronome.setRowCount(0)
         self.tableWidgetMetronome.setHorizontalHeaderLabels(["Duration", "BPM", "Beats per measure", "Skipped"])
-        self.tableWidgetMetronome.resizeColumnsToContents()
-        self.tableWidgetMetronome.resizeRowsToContents()
         self.tableWidgetMetronome.setFixedWidth()
 
     #    

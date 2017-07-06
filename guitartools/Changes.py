@@ -44,6 +44,36 @@ def strtobool(x):
     else:
         return bool(x)
 
+#
+# Quick subclass of table widget to allow for fixed width operation
+#
+
+class QTableWidgetChords(QtWidgets.QTableWidget):
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Never display a vertical header
+        self.verticalHeader().setVisible(False)
+
+    def setFixedWidth(self):
+        """
+        Sets the widget's width perfectally to match it;s contents
+        """
+        
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+        
+        width = 0
+        width += self.verticalHeader().width()
+        width += self.horizontalHeader().length()
+        width += self.frameWidth() * 2
+        
+        # On OSX we now have the hidden scroll bars.
+        # width += self.style().pixelMetric(QtWidgets.QStyle.PM_ScrollBarExtent)
+        
+        self.setMaximumWidth(width)
+        self.setMinimumWidth(width)
 
 #
 #
@@ -77,6 +107,7 @@ class Changes(AutoConfig):
         
         loader = UiLoader()
 
+        loader.registerCustomWidget(QTableWidgetChords)
         self.ui = loader.load(LocalPath('changes.ui'))
         
         # Load the UI before calling super
@@ -95,16 +126,13 @@ class Changes(AutoConfig):
                                                               "Pairs"
                                                               ])
         self.ui.tableWidget_Chords.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)                      
-        self.ui.tableWidget_Chords.resizeColumnsToContents()
-        self.ui.tableWidget_Chords.resizeRowsToContents()
-
-        # set horizontal header properties
-        hh = self.ui.tableWidget_Chords.horizontalHeader()
-        hh.setStretchLastSection(False)
+        self.ui.tableWidget_Chords.setFixedWidth()
 
         # Changes table
         self.ui.tableWidget_Changes.resizeColumnsToContents()
         self.ui.tableWidget_Changes.resizeRowsToContents()
+
+        
 
 
         #
@@ -159,6 +187,8 @@ class Changes(AutoConfig):
             
             chord = self.ui.tableWidget_Chords.item(row, 2).text()
             chords[chord] = data
+
+        self.ui.tableWidget_Chords.setFixedWidth()
             
         return chords
     
@@ -187,8 +217,7 @@ class Changes(AutoConfig):
             # Used to know where in the table this chord is stored.
             chord['index'] = row
 
-        self.ui.tableWidget_Chords.resizeColumnsToContents()
-        self.ui.tableWidget_Chords.resizeRowsToContents()
+        self.ui.tableWidget_Chords.setFixedWidth()
             
         #
         # Now add chords to the BestTable

@@ -30,7 +30,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QTableWidget" name="tableWidget_Chords">
+      <widget class="QTableWidgetChords" name="tableWidget_Chords">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
          <horstretch>0</horstretch>
@@ -53,7 +53,7 @@
           <enum>Qt::Horizontal</enum>
          </property>
          <property name="sizeType">
-          <enum>QSizePolicy::MinimumExpanding</enum>
+          <enum>QSizePolicy::Minimum</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -203,6 +203,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QTableWidgetChords</class>
+   <extends>QTableWidget</extends>
+   <header>qtutils/widgets.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
