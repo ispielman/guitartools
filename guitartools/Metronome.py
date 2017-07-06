@@ -63,14 +63,32 @@ class QTableWidgetMetronome(QtWidgets.QTableWidget):
         self.delegate = _QStyledItemDelegateMetronome(self)
         self.setItemDelegate(self.delegate)
 
-        
+        # Never display a vertical header
+        self.verticalHeader().setVisible(False)
 
+    def setFixedWidth(self):
+        """
+        Sets the widget's width perfectally to match it;s contents
+        """
+        
+        width = 0
+        width += self.verticalHeader().width()
+        width += self.horizontalHeader().length()
+        width += self.frameWidth() * 2
+        
+        # On OSX we now have the hidden scroll bars.
+        # width += self.style().pixelMetric(QtWidgets.QStyle.PM_ScrollBarExtent)
+        
+        self.setMaximumWidth(width)
+        self.setMinimumWidth(width)
+        
     def _clicked(self, point):
         row = self.row(self.itemAt(point))
         
         menu = QtWidgets.QMenu(self)
         menu.addAction(self._actionCreate(row))
         menu.addAction(self._actionRemove(row))
+        menu.addAction(self._actionRemoveAll())
         menu.exec_(QtGui.QCursor.pos())
     
     def _actionCreate(self, row):
@@ -100,6 +118,21 @@ class QTableWidgetMetronome(QtWidgets.QTableWidget):
         actionRemove.triggered.connect(_removeItem)
         
         return actionRemove
+
+    def _actionRemoveAll(self):
+        """
+        return an action to create at the specified row
+        """
+    
+        actionRemove = QtWidgets.QAction("Remove all...", self)
+    
+        def _removeAll():
+            self.setRowCount(0)
+            
+        actionRemove.triggered.connect(_removeAll)
+        
+        return actionRemove
+
 
     def newItem(self, row, Duration="60", BPM="100", Emph='1', Skipped="0%"):
         if row == -1 or row > self.rowCount():
@@ -277,7 +310,7 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
         self.tableWidgetMetronome.setHorizontalHeaderLabels(["Duration", "BPM", "Beats per measure", "Skipped"])
         self.tableWidgetMetronome.resizeColumnsToContents()
         self.tableWidgetMetronome.resizeRowsToContents()
-
+        self.tableWidgetMetronome.setFixedWidth()
 
     #    
     # TODO: Table needs to be populated from the ini file
