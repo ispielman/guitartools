@@ -41,6 +41,12 @@ class QProgressBarNumber(QtWidgets.QWidget):
         self._state = QProgressBarNumber.STOPPED
 
         #
+        # Overall widget properties
+        #
+
+        self.setFocusPolicy(QtCore.Qt.NoFocus)
+
+        #
         # Basic timer functionality
         #
 
@@ -52,9 +58,11 @@ class QProgressBarNumber(QtWidgets.QWidget):
         #
         
         self.ProgressBar = QtWidgets.QProgressBar()
+        self.ProgressBar.setFocusPolicy(QtCore.Qt.NoFocus)
 
         self.label_Time = QtWidgets.QLabel("Time")
         self.Time = QtWidgets.QSpinBox()
+        self.Time.setFocusPolicy(QtCore.Qt.NoFocus)
         self.Time.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
         self.Time.setReadOnly(True)
         self.Time.setRange(0, 3600)
@@ -67,6 +75,7 @@ class QProgressBarNumber(QtWidgets.QWidget):
         
         self.label_Repeats = QtWidgets.QLabel("Repeats")
         self.Repeats = QtWidgets.QSpinBox()
+        self.Repeats.setFocusPolicy(QtCore.Qt.NoFocus)
         self.Repeats.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
         self.Repeats.setReadOnly(True)
         font = self.Repeats.font()

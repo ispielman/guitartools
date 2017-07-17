@@ -27,6 +27,9 @@
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
        <property name="text">
         <string>Click!</string>
        </property>
@@ -79,6 +82,9 @@
        </item>
        <item row="1" column="0">
         <widget class="QComboBox" name="comboBox_Metronome">
+         <property name="focusPolicy">
+          <enum>Qt::StrongFocus</enum>
+         </property>
          <item>
           <property name="text">
            <string>Inactive</string>
@@ -150,6 +156,9 @@
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
+     <property name="focusPolicy">
+      <enum>Qt::ClickFocus</enum>
+     </property>
      <property name="autoFillBackground">
       <bool>false</bool>
      </property>
@@ -167,6 +176,12 @@
    <header>qtutils/widgets.h</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>comboBox_Metronome</tabstop>
+  <tabstop>BPM_spinBox</tabstop>
+  <tabstop>Emph_spinBox</tabstop>
+  <tabstop>spinBox_Skipped</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
