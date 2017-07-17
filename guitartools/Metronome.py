@@ -238,7 +238,6 @@ class QTableWidgetMetronome(QtWidgets.QTableWidget):
 
 AutoConfig = MakeAutoConfig()
 class Metronome(QtWidgets.QWidget, AutoConfig):
-
     
     #
     # signals
@@ -290,9 +289,11 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
         
         # Metronome Flash timer
         self.MetronomeTimer = QtCore.QTimer()
+        self.MetronomeTimer.setTimerType(QtCore.Qt.PreciseTimer)
         
         # Metronome MetronomeUnFlash timer
         self.MetronomeUnFlashTimer = QtCore.QTimer()
+        self.MetronomeUnFlashTimer.setTimerType(QtCore.Qt.PreciseTimer)
 
         # Start / stop metronome
         self.comboBox_Metronome.currentIndexChanged.connect(self.MetronomeStartStop)
@@ -310,7 +311,9 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
         # Table mode
         self.tableWidgetMetronome.setColumnCount(4)
         self.tableWidgetMetronome.setRowCount(0)
-        self.tableWidgetMetronome.setHorizontalHeaderLabels(["Duration", "BPM", "Beats per measure", "Skipped"])
+        self.tableWidgetMetronome.setHorizontalHeaderLabels(
+                ["Duration", "BPM", "Beats per measure", "Skipped"]
+                )
         self.tableWidgetMetronome.setFixedWidth()
 
     #    
@@ -369,7 +372,7 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
     def MetronomeUpdate(self):
         if self.MetronomeTimer.isActive():
             BPM = self.BPM_spinBox.value()
-            self.MetronomeTimer.start(60 / BPM * 1000) # BPM to ms
+            self.MetronomeTimer.setInterval(60 / BPM * 1000) # BPM to ms
 
     def MetronomeStartStop(self, state):
                 
@@ -400,7 +403,11 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
             # expected durations
 
             self.timerSettings.emit(self.dynamicValues['Duration'])
-            self.timerSettingsGo.emit()
+            
+            # This signal start the timer when this method is selected.
+            # this is not user friendly behavior, actually
+            
+            # self.timerSettingsGo.emit()
         
             if self._externalTimerIndex >= 0:
                 self._connect_timer(True)
