@@ -407,7 +407,7 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
             # This signal start the timer when this method is selected.
             # this is not user friendly behavior, actually
             
-            # self.timerSettingsGo.emit()
+            self.timerSettingsGo.emit()
         
             if self._externalTimerIndex >= 0:
                 self._connect_timer(True)

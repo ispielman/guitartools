@@ -53,10 +53,11 @@ class GuitarToolsMainWindow(AutoConfig):
         self.Timer.ui.progressBarNumber_Countdown.beep.connect(
                 self.qt_application.beep
                 )
+
         #
         # Metronome
         #
-        self.Metronome = Metronome()
+        self.Metronome = Metronome(autoconfig_name_key='metronome')
         self.ui.verticalLayout_Metronome.addWidget(self.Metronome)
         
         # Now link the metronome to the timer

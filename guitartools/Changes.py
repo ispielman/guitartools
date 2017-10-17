@@ -28,7 +28,7 @@ import random
 import distutils.util
 
 from guitartools.Support import UiLoader, LocalPath, MakeAutoConfig
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 
 #
 # Helper
@@ -98,6 +98,7 @@ class Changes(AutoConfig):
     format.  
     """
 
+    AutoConfig.Add('goal', 1)
     AutoConfig.Add('history', {})
     AutoConfig.Add('chords', {})
 
@@ -159,6 +160,14 @@ class Changes(AutoConfig):
         
         # Seed the random number generator
         random.seed()
+
+    @property
+    def goal(self):
+        return self.ui.spinBox_Goal.value()
+    
+    @goal.setter
+    def goal(self, value):        
+        self.ui.spinBox_Goal.setValue(int(value))
     
     @property
     def history(self):
@@ -247,6 +256,10 @@ class Changes(AutoConfig):
             QTableWidgetItem_best2 = QtWidgets.QTableWidgetItem(str(v['Best']))
             QTableWidgetItem_best1.setFlags(QtCore.Qt.ItemIsEnabled)
             QTableWidgetItem_best2.setFlags(QtCore.Qt.ItemIsEnabled)
+
+            if v['Best'] > self.goal:
+                QTableWidgetItem_best1.setBackground(QtGui.QColor(255,200,200))
+                QTableWidgetItem_best2.setBackground(QtGui.QColor(255,200,200))
 
             self.ui.tableWidget_Changes.setItem(index1, index2, QTableWidgetItem_best1)
             self.ui.tableWidget_Changes.setItem(index2, index1, QTableWidgetItem_best2)
