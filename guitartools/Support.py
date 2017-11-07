@@ -51,7 +51,26 @@ def LocalPath(filename):
 from collections import OrderedDict
 
 def MakeAutoConfig():
+    """
+    Should be used in the following way:
+        
+    AutoConfig = MakeAutoConfig()
+    
+    class Metronome(QtWidgets.QWidget, AutoConfig):
+        AutoConfig.Add('history', {})
+        AutoConfig.Add('chords', {})
 
+        def __init__(self, **kwargs):
+                    
+            
+            
+            # Needs to be called somewhere if intending to set
+            # autoconfiged obtions from **kwargs
+            super().__init__(**kwargs)
+    
+    """
+    
+    
     class AutoConfigBase():
         """
         Partners with AutoConfig to setup AutoConfig system
