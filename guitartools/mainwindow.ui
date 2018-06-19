@@ -42,7 +42,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="tab_Metronome">
        <attribute name="title">
@@ -61,6 +61,12 @@
         <string>Listening</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_Listening"/>
+      </widget>
+      <widget class="QWidget" name="tab_NoteNames">
+       <attribute name="title">
+        <string>Note Names</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_3"/>
       </widget>
      </widget>
     </item>

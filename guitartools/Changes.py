@@ -256,8 +256,12 @@ class Changes(AutoConfig):
             QTableWidgetItem_best2 = QtWidgets.QTableWidgetItem(str(v['Best']))
             QTableWidgetItem_best1.setFlags(QtCore.Qt.ItemIsEnabled)
             QTableWidgetItem_best2.setFlags(QtCore.Qt.ItemIsEnabled)
-
-            if v['Best'] > self.goal:
+            
+            # Set Colors                
+            if v['Best'] >= self.goal:
+                QTableWidgetItem_best1.setBackground(QtGui.QColor(200,255,200))
+                QTableWidgetItem_best2.setBackground(QtGui.QColor(200,255,200))
+            else:
                 QTableWidgetItem_best1.setBackground(QtGui.QColor(255,200,200))
                 QTableWidgetItem_best2.setBackground(QtGui.QColor(255,200,200))
 
