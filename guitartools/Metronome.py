@@ -308,6 +308,12 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
         self.spinBox_Skipped.setKeyboardTracking(False)
         self.spinBox_Skipped.valueChanged.connect(self.MetronomeUpdate)
 
+        # Presets
+        self.pushButton_Preset_1.clicked.connect(self.Preset_1)
+        self.pushButton_Preset_2.clicked.connect(self.Preset_2)
+        self.pushButton_Preset_5.clicked.connect(self.Preset_5)
+        self.pushButton_Preset_10.clicked.connect(self.Preset_10)
+
         # Table mode
         self.tableWidgetMetronome.setColumnCount(4)
         self.tableWidgetMetronome.setRowCount(0)
@@ -413,6 +419,31 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
                 self._connect_timer(True)
             else:
                 self._connect_timer(False)
+    
+    def Preset_1(self):
+        """
+        start a 1 minute metronome session
+        """
+        pass
+
+    def Preset_2(self):
+        """
+        start a 2 minute metronome session
+        """
+        pass
+
+    def Preset_5(self):
+        """
+        start a 5 minute metronome session
+        """
+        pass
+
+    def Preset_10(self):
+        """
+        start a 10 minute metronome session
+        """
+        pass
+
     
     #
     # External control 
