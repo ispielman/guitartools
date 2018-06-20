@@ -424,25 +424,29 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
         """
         start a 1 minute metronome session
         """
-        pass
+        self.timerSettings.emit([60,])
+        self.timerSettingsGo.emit()
 
     def Preset_2(self):
         """
         start a 2 minute metronome session
         """
-        pass
+        self.timerSettings.emit([60,]*2)
+        self.timerSettingsGo.emit()
 
     def Preset_5(self):
         """
         start a 5 minute metronome session
         """
-        pass
+        self.timerSettings.emit([60,]*5)
+        self.timerSettingsGo.emit()
 
     def Preset_10(self):
         """
         start a 10 minute metronome session
         """
-        pass
+        self.timerSettings.emit([60,]*10)
+        self.timerSettingsGo.emit()
 
     
     #
