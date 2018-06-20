@@ -309,10 +309,10 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
         self.spinBox_Skipped.valueChanged.connect(self.MetronomeUpdate)
 
         # Presets
-        self.pushButton_Preset_1.clicked.connect(self.Preset_1)
-        self.pushButton_Preset_2.clicked.connect(self.Preset_2)
-        self.pushButton_Preset_5.clicked.connect(self.Preset_5)
-        self.pushButton_Preset_10.clicked.connect(self.Preset_10)
+        self.pushButton_Preset_1.clicked.connect(lambda: self.Preset(1))
+        self.pushButton_Preset_2.clicked.connect(lambda: self.Preset(2))
+        self.pushButton_Preset_5.clicked.connect(lambda: self.Preset(5))
+        self.pushButton_Preset_10.clicked.connect(lambda: self.Preset(10))
 
         # Table mode
         self.tableWidgetMetronome.setColumnCount(4)
@@ -361,16 +361,23 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
         if self._MetronomeLoud != SILENT:
             # Flash the strobe button.
             self.pushButton_Click.setDown(True)
+            msg = 'Click {}/{}'.format(
+                    self._MetronomeIndex+1,
+                    self.Emph_spinBox.value()
+                    )
+            self.pushButton_Click.setText(msg)
             self.MetronomeUnFlashTimer.singleShot(100, self.MetronomeUnFlash)
 
         # Now get ready for the next shot
-        self._MetronomeIndex += 1
         emphasis = self.Emph_spinBox.value()
         skipped = self.spinBox_Skipped.value()
+
+        self._MetronomeIndex += 1
+        self._MetronomeIndex %= emphasis
         
         if random.randrange(100) < skipped:
             self._MetronomeLoud = SILENT
-        elif self._MetronomeIndex % emphasis == 0:
+        elif self._MetronomeIndex == 0:
             self._MetronomeLoud = LOUD
         else:
             self._MetronomeLoud = QUIET
@@ -426,32 +433,12 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
             else:
                 self._connect_timer(False)
     
-    def Preset_1(self):
+    
+    def Preset(self, duration):
         """
-        start a 1 minute metronome session
+        start a metronome session with duration = duration
         """
-        self.timerSettings.emit([60,])
-        self.timerSettingsGo.emit()
-
-    def Preset_2(self):
-        """
-        start a 2 minute metronome session
-        """
-        self.timerSettings.emit([60,]*2)
-        self.timerSettingsGo.emit()
-
-    def Preset_5(self):
-        """
-        start a 5 minute metronome session
-        """
-        self.timerSettings.emit([60,]*5)
-        self.timerSettingsGo.emit()
-
-    def Preset_10(self):
-        """
-        start a 10 minute metronome session
-        """
-        self.timerSettings.emit([60,]*10)
+        self.timerSettings.emit([60,]*duration)
         self.timerSettingsGo.emit()
 
     
