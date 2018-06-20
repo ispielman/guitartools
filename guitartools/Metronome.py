@@ -303,7 +303,7 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
         self.BPM_spinBox.valueChanged.connect(self.MetronomeUpdate)
 
         self.Emph_spinBox.setKeyboardTracking(False)
-        self.Emph_spinBox.valueChanged.connect(self.MetronomeUpdate)
+        self.Emph_spinBox.valueChanged.connect(self.emphUpdate)
 
         self.spinBox_Skipped.setKeyboardTracking(False)
         self.spinBox_Skipped.valueChanged.connect(self.MetronomeUpdate)
@@ -374,6 +374,12 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
             self._MetronomeLoud = LOUD
         else:
             self._MetronomeLoud = QUIET
+
+    def emphUpdate(self):
+        """
+        Update the number of flashes per measure.
+        """
+        pass
 
     def MetronomeUpdate(self):
         if self.MetronomeTimer.isActive():
