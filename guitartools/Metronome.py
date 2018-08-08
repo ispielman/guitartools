@@ -265,6 +265,9 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
         # Perform autoconfig
         AutoConfig.__init__(self, autoconfig_name_key='metronome')
         
+        # Empty array of emph buttons
+        self._pushButtons_Click = []
+        
         #
         # Connect widgets!
         #
@@ -304,6 +307,9 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
 
         self.Emph_spinBox.setKeyboardTracking(False)
         self.Emph_spinBox.valueChanged.connect(self.emphUpdate)
+        
+        # Build button array
+        self.emphUpdate()
 
         self.spinBox_Skipped.setKeyboardTracking(False)
         self.spinBox_Skipped.valueChanged.connect(self.MetronomeUpdate)
@@ -347,31 +353,33 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
     #
     # Metronome Methods
     #
-
-    def MetronomeUnFlash(self):
-        self.pushButton_Click.setDown(False)
-
+        
     def MetronomeFlash(self):
 
         # First start the current output (with volume set at the end of the
         # last click).  Do this right away to minimize any latancy
         self._play(self._MetronomeLoud)
+
+        emphasis = self.Emph_spinBox.value()
+        skipped = self.spinBox_Skipped.value()
         
         #  Only flash if planning to click
         if self._MetronomeLoud != SILENT:
             # Flash the strobe button.
-            self.pushButton_Click.setDown(True)
-            msg = 'Click {}/{}'.format(
-                    self._MetronomeIndex+1,
-                    self.Emph_spinBox.value()
-                    )
-            self.pushButton_Click.setText(msg)
-            self.MetronomeUnFlashTimer.singleShot(100, self.MetronomeUnFlash)
+
+            pushButton = self._pushButtons_Click[self._MetronomeIndex%emphasis]
+            pushButton.setDown(True)
+
+            def MetronomeUnFlash():
+                try:
+                    pushButton.setDown(False)
+                except:
+                    pass
+
+            self.MetronomeUnFlashTimer.singleShot(100, MetronomeUnFlash)
 
         # Now get ready for the next shot
-        emphasis = self.Emph_spinBox.value()
-        skipped = self.spinBox_Skipped.value()
-
+ 
         self._MetronomeIndex += 1
         self._MetronomeIndex %= emphasis
         
@@ -384,10 +392,28 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
 
     def emphUpdate(self):
         """
-        Update the number of flashes per measure.
+        Rebuild the button array for the metronome
         """
-        pass
+        
+        # Kill old pushbuttons -- maybe better to look in layout rather than
+        # list?
+        for pushButton in self._pushButtons_Click:
+            pushButton.deleteLater()
+        
+        # Add new pushbuttons
+        self._pushButtons_Click = []
+        num = self.Emph_spinBox.value()
+        for i in range(num):
+            b = QtWidgets.QPushButton("{}/{}".format(i+1, num))
+            self._pushButtons_Click.append(b)
+            self.horizontalLayout_Click.addWidget(b)
+            b.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+            
+            b.setStyleSheet("QPushButton {border-style: outset;}")
+            b.setStyleSheet("QPushButton:pressed {background-color: #ff0000; border-style: inset;}")
 
+        
+        
     def MetronomeUpdate(self):
         if self.MetronomeTimer.isActive():
             BPM = self.BPM_spinBox.value()
