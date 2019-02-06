@@ -27,7 +27,7 @@ import time
 import random
 import distutils.util
 
-from guitartools.Support import UiLoader, LocalPath, MakeAutoConfig
+from guitartools.Support import UiLoader, LocalPath, MakeAutoConfig, QTableWidgetFixed
 from PyQt5 import QtWidgets, QtCore, QtGui
 
 #
@@ -43,37 +43,6 @@ def strtobool(x):
         return distutils.util.strtobool(x)
     else:
         return bool(x)
-
-#
-# Quick subclass of table widget to allow for fixed width operation
-#
-
-class QTableWidgetChords(QtWidgets.QTableWidget):
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        
-        # Never display a vertical header
-        self.verticalHeader().setVisible(False)
-
-    def setFixedWidth(self):
-        """
-        Sets the widget's width perfectally to match it;s contents
-        """
-        
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
-        
-        width = 0
-        width += self.verticalHeader().width()
-        width += self.horizontalHeader().length()
-        width += self.frameWidth() * 2
-        
-        # On OSX we now have the hidden scroll bars.
-        # width += self.style().pixelMetric(QtWidgets.QStyle.PM_ScrollBarExtent)
-        
-        self.setMaximumWidth(width)
-        self.setMinimumWidth(width)
 
 #
 #
@@ -108,7 +77,7 @@ class Changes(AutoConfig):
         
         loader = UiLoader()
 
-        loader.registerCustomWidget(QTableWidgetChords)
+        loader.registerCustomWidget(QTableWidgetFixed)
         self.ui = loader.load(LocalPath('changes.ui'))
         
         # Load the UI before calling super

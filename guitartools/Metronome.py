@@ -15,7 +15,8 @@ import random
 
 from guitartools.Support import UiLoader, LocalPath, MakeAutoConfig
 
-from PyQt5 import QtGui, QtCore, QtWidgets, QtMultimedia
+from PyQt5 import QtGui, QtCore, QtWidgets
+from PyQt5 import QtMultimedia
 
 #
 # Constants
@@ -409,11 +410,9 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
             self.horizontalLayout_Click.addWidget(b)
             b.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
             
-            b.setStyleSheet("QPushButton {border-style: outset;}")
-            b.setStyleSheet("QPushButton:pressed {background-color: #ff0000; border-style: inset;}")
+            if i == 0:
+                b.setStyleSheet("QPushButton:pressed {background-color: #ff0000; border-style: inset;}")
 
-        
-        
     def MetronomeUpdate(self):
         if self.MetronomeTimer.isActive():
             BPM = self.BPM_spinBox.value()

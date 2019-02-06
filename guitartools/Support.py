@@ -10,7 +10,7 @@ import sys
 import types
 import os
 
-from PyQt5 import uic
+from PyQt5 import uic, QtWidgets
 
 
 # Ripped from qtutils
@@ -157,3 +157,34 @@ def MakeAutoConfig():
                 return state
 
     return AutoConfig
+
+#
+# Quick subclass of table widget to allow for fixed width operation
+#
+
+class QTableWidgetFixed(QtWidgets.QTableWidget):
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Never display a vertical header
+        self.verticalHeader().setVisible(False)
+
+    def setFixedWidth(self):
+        """
+        Sets the widget's width perfectally to match it;s contents
+        """
+        
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+        
+        width = 0
+        width += self.verticalHeader().width()
+        width += self.horizontalHeader().length()
+        width += self.frameWidth() * 2
+        
+        # On OSX we now have the hidden scroll bars.
+        # width += self.style().pixelMetric(QtWidgets.QStyle.PM_ScrollBarExtent)
+        
+        self.setMaximumWidth(width)
+        self.setMinimumWidth(width)

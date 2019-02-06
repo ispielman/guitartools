@@ -18,6 +18,7 @@ from guitartools.Metronome import Metronome
 from guitartools.Timer import Timer
 from guitartools.Changes import Changes
 from guitartools.Listening import Listening
+# from guitartools.Songs import Songs
 
 from guitartools.Support import UiLoader, LocalPath, MakeAutoConfig
 
@@ -79,6 +80,13 @@ class GuitarToolsMainWindow(AutoConfig):
         #
         self.Changes = Changes(self, autoconfig_name_key='changes')
         self.ui.verticalLayout_Changes.addWidget(self.Changes.ui)
+
+        #
+        # Songs Suggestor
+        #
+        # self.Songs = Songs(self, autoconfig_name_key='songs')
+        # self.ui.verticalLayout_Songs.addWidget(self.Songs.ui)
+
 
         #
         # Listening
@@ -165,6 +173,7 @@ class GuitarToolsMainWindow(AutoConfig):
         self.Timer.set_state(**state)
         self.Metronome.set_state(**state)
         self.Changes.set_state(**state)
+        # self.Songs.set_state(**state)
         self.Listening.set_state(**state)
 
     
@@ -178,6 +187,7 @@ class GuitarToolsMainWindow(AutoConfig):
         state.update(self.Timer.get_state())
         state.update(self.Metronome.get_state())
         state.update(self.Changes.get_state())
+        state.update(self.Songs.get_state())
         state.update(self.Listening.get_state())
 
         
