@@ -27,8 +27,8 @@ import time
 import random
 import distutils.util
 
-from guitartools.Support import UiLoader, LocalPath, MakeAutoConfig, QTableWidgetFixed
-from PyQt5 import QtWidgets, QtCore, QtGui
+from guitartools.Support import UiLoader, LocalPath, MakeAutoConfig, QTableWidgetFixed, SortedTupleFromArgs, SortedStrongFromArgs
+from PyQt5 import QtWidgets, QtCore, QtGui 
 
 #
 # Helper
@@ -385,7 +385,7 @@ class Changes(AutoConfig):
                     10000)
             return
 
-        key = self.ChordsString(Chord1, Chord2)
+        key = SortedStrongFromArgs(Chord1, Chord2)
                 
         chord_history = self.history.setdefault(key, {})
 
@@ -470,7 +470,7 @@ class Changes(AutoConfig):
         total = 0.0
         for key in self._known_pairs():
 
-            key_string = self.ChordsString(*key)
+            key_string = SortedStrongFromArgs(*key)
             if key_string in self.history:
                 total += 1/self.history[key_string]['Best']
             else:
@@ -486,7 +486,7 @@ class Changes(AutoConfig):
         total = 0.0  
         for key in self._known_pairs():
             
-            key_string = self.ChordsString(*key)
+            key_string = SortedStrongFromArgs(*key)
             if key_string in self.history:
                 total += 1/self.history[key_string]['Best']
             else:
@@ -505,26 +505,12 @@ class Changes(AutoConfig):
         line = self.ui.comboBox_Chord1.findText(key[1])
         self.ui.comboBox_Chord2.setCurrentIndex(line)
 
-
-    def ChordsTuple(self, *args):
-        """
-        generates a sorted chord tuple from the list of chords provided
-        """
-        
-        return tuple(sorted( args ))
-
-    def ChordsString(self, *args):
-        """
-        generates a sorted chord string from the list of chords provided
-        """
-
-        return str(self.ChordsTuple(*args))
-
     def _known_pairs(self):
         """
         a generator that yields a list of distinct chord pairs
         
-        if self.required_chords is non-empty, then one chord MUST be from this list
+        if self.required_chords is non-empty, then one chord MUST be from this 
+        list
         
         and all other chords must be from self.active_chords
         """
@@ -543,4 +529,4 @@ class Changes(AutoConfig):
             active_chords.pop(required_chord, None)
             
             for active_chord in active_chords:
-                yield self.ChordsTuple(required_chord, active_chord)
+                yield SortedTupleFromArgs(required_chord, active_chord)

@@ -188,3 +188,22 @@ class QTableWidgetFixed(QtWidgets.QTableWidget):
         
         self.setMaximumWidth(width)
         self.setMinimumWidth(width)
+        
+        
+#
+# Simple support functions
+# 
+        
+def SortedTupleFromArgs(*args):
+    """
+    generates a sorted tuple from the args provided
+    """
+    
+    return tuple(sorted( args ))
+
+def SortedStrongFromArgs(*args):
+    """
+    generates a sorted chord string from the list of chords provided
+    """
+
+    return str(SortedTupleFromArgs(*args))
