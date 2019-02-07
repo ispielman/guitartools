@@ -27,22 +27,8 @@ import time
 import random
 import distutils.util
 
-from guitartools.Support import UiLoader, LocalPath, MakeAutoConfig, QTableWidgetFixed, SortedTupleFromArgs, SortedStrongFromArgs
+from guitartools.Support import UiLoader, LocalPath, MakeAutoConfig, QTableWidgetFixed, SortedTupleFromArgs, SortedStrongFromArgs, strtobool
 from PyQt5 import QtWidgets, QtCore, QtGui 
-
-#
-# Helper
-#
-
-def strtobool(x):
-    """
-    Attempts to convert x to a bool
-    """
-    
-    if type(x) == str:
-        return distutils.util.strtobool(x)
-    else:
-        return bool(x)
 
 #
 #

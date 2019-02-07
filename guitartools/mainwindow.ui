@@ -72,7 +72,7 @@
        <attribute name="title">
         <string>Songs</string>
        </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_4"/>
+       <layout class="QVBoxLayout" name="verticalLayout_Songs"/>
       </widget>
      </widget>
     </item>

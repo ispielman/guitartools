@@ -9,6 +9,7 @@ Created on Tue May 16 22:05:15 2017
 import sys
 import types
 import os
+import distutils.util
 
 from PyQt5 import uic, QtWidgets
 
@@ -172,7 +173,7 @@ class QTableWidgetFixed(QtWidgets.QTableWidget):
 
     def setFixedWidth(self):
         """
-        Sets the widget's width perfectally to match it;s contents
+        Sets the widget's width perfectally to match it's contents
         """
         
         self.resizeColumnsToContents()
@@ -207,3 +208,13 @@ def SortedStrongFromArgs(*args):
     """
 
     return str(SortedTupleFromArgs(*args))
+
+def strtobool(x):
+    """
+    Attempts to convert x to a bool
+    """
+    
+    if type(x) == str:
+        return distutils.util.strtobool(x)
+    else:
+        return bool(x)

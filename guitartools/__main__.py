@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import os
 import signal
 import configobj
 
@@ -18,7 +19,7 @@ from guitartools.Metronome import Metronome
 from guitartools.Timer import Timer
 from guitartools.Changes import Changes
 from guitartools.Listening import Listening
-# from guitartools.Songs import Songs
+from guitartools.Songs import Songs
 
 from guitartools.Support import UiLoader, LocalPath, MakeAutoConfig
 
@@ -84,9 +85,8 @@ class GuitarToolsMainWindow(AutoConfig):
         #
         # Songs Suggestor
         #
-        # self.Songs = Songs(self, autoconfig_name_key='songs')
-        # self.ui.verticalLayout_Songs.addWidget(self.Songs.ui)
-
+        self.Songs = Songs(self, autoconfig_name_key='songs')
+        self.ui.verticalLayout_Songs.addWidget(self.Songs.ui)
 
         #
         # Listening
@@ -118,15 +118,27 @@ class GuitarToolsMainWindow(AutoConfig):
         # Quit
         self.ui.actionQuit.triggered.connect(self.Quit)
 
+        self.qt_application.aboutToQuit.connect(self.GracefulShutdown)
+
         #
         # Setup complete.  Show the user interface
         #
                 
         self.ui.show()
+        
+        # Now load the default settings
+        
+        scriptDir = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'examples'
+        ConfigFile = scriptDir + os.path.sep + 'changes.ini'
+        self.SetFilename(ConfigFile)
+        self._SetWindowTitle()
 
 
     def Quit(self):
         self.qt_application.quit()
+
+    def GracefulShutdown(self):
+        self.SaveChanges()
 
     def SetLogFile(self):
 
@@ -151,7 +163,7 @@ class GuitarToolsMainWindow(AutoConfig):
     #
 
     def SetFilename(self, filename):
-        
+                
         if filename is not None:
             try:
                 state = configobj.ConfigObj(infile=filename)
@@ -165,7 +177,6 @@ class GuitarToolsMainWindow(AutoConfig):
         else:
             state = configobj.ConfigObj()
 
-
         # Now for every subwidget distributed the config
         self.set_state(**state)
         self._filename = filename        
@@ -173,7 +184,7 @@ class GuitarToolsMainWindow(AutoConfig):
         self.Timer.set_state(**state)
         self.Metronome.set_state(**state)
         self.Changes.set_state(**state)
-        # self.Songs.set_state(**state)
+        self.Songs.set_state(**state)
         self.Listening.set_state(**state)
 
     
@@ -204,6 +215,6 @@ if __name__ == '__main__':
     app = GuitarToolsMainWindow(qapplication, autoconfig_name_key='guitartools')
 
     def execute_program():
-        qapplication.exec_()
+        qapplication.exec_()    
 
     sys.exit(execute_program())
