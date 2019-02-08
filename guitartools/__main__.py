@@ -31,7 +31,9 @@ AutoConfig = MakeAutoConfig()
 class GuitarToolsMainWindow(AutoConfig):
 
     AutoConfig.Add('_filename', None)
-        
+    AutoConfig.Add('volume', 100)
+    _autoconfig_on_init = False
+    
     def __init__(self, application, **kwargs):
         super().__init__(**kwargs)
                 
@@ -40,6 +42,9 @@ class GuitarToolsMainWindow(AutoConfig):
         loader = UiLoader()
 
         self.ui = loader.load(LocalPath('mainwindow.ui'), GuitarToolsWindow())
+
+        # set all autoconfig items
+        self.set_state(**kwargs)
         
         # #####################################################################
         #
@@ -138,6 +143,17 @@ class GuitarToolsMainWindow(AutoConfig):
         ConfigFile = scriptDir + os.path.sep + 'changes.ini'
         self.SetFilename(ConfigFile)
         self._SetWindowTitle()
+
+    @property
+    def volume(self):
+        return self.ui.verticalSlider_Volume.value()
+    
+    @volume.setter
+    def volume(self, value):
+        value = max(int(value), 0)
+        value = min(int(value), 100)
+        
+        self.ui.verticalSlider_Volume.setValue(value)
 
     def Quit(self):
         self.qt_application.quit()
