@@ -47,6 +47,8 @@ class GuitarToolsMainWindow(AutoConfig):
         # 
         # #####################################################################
 
+
+
         #
         # Timer
         #
@@ -75,6 +77,10 @@ class GuitarToolsMainWindow(AutoConfig):
 
         self.Metronome.timerSettingsGo.connect(
                 self.Timer.ui.progressBarNumber_Countdown.start)
+        
+        self.ui.verticalSlider_Volume.valueChanged.connect(self.Metronome.setVolume)
+        self.ui.verticalSlider_Volume.valueChanged.emit(self.ui.verticalSlider_Volume.value() )
+
         
         #
         # Chord changes
@@ -132,7 +138,6 @@ class GuitarToolsMainWindow(AutoConfig):
         ConfigFile = scriptDir + os.path.sep + 'changes.ini'
         self.SetFilename(ConfigFile)
         self._SetWindowTitle()
-
 
     def Quit(self):
         self.qt_application.quit()

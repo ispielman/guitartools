@@ -23,7 +23,7 @@
      <verstretch>0</verstretch>
     </sizepolicy>
    </property>
-   <layout class="QVBoxLayout" name="verticalLayout_2">
+   <layout class="QHBoxLayout" name="horizontalLayout_3">
     <property name="spacing">
      <number>0</number>
     </property>
@@ -40,55 +40,98 @@
      <number>15</number>
     </property>
     <item>
-     <widget class="QTabWidget" name="tabWidget">
-      <property name="currentIndex">
-       <number>4</number>
-      </property>
-      <widget class="QWidget" name="tab_Metronome">
-       <attribute name="title">
-        <string>Metronome</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_Metronome"/>
-      </widget>
-      <widget class="QWidget" name="tab_Changes">
-       <attribute name="title">
-        <string>Chord Changes</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_Changes"/>
-      </widget>
-      <widget class="QWidget" name="tab_Listening">
-       <attribute name="title">
-        <string>Listening</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_Listening"/>
-      </widget>
-      <widget class="QWidget" name="tab_NoteNames">
-       <attribute name="title">
-        <string>Note Names</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_3"/>
-      </widget>
-      <widget class="QWidget" name="tab_Songs">
-       <attribute name="title">
-        <string>Songs</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_Songs"/>
-      </widget>
-     </widget>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Volume</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QSlider" name="verticalSlider_Volume">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="layoutDirection">
+         <enum>Qt::LeftToRight</enum>
+        </property>
+        <property name="autoFillBackground">
+         <bool>false</bool>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="invertedAppearance">
+         <bool>false</bool>
+        </property>
+        <property name="invertedControls">
+         <bool>false</bool>
+        </property>
+        <property name="tickPosition">
+         <enum>QSlider::NoTicks</enum>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
     <item>
-     <widget class="QGroupBox" name="groupBox_Timer">
-      <property name="title">
-       <string>Timer</string>
-      </property>
-      <property name="flat">
-       <bool>false</bool>
-      </property>
-      <property name="checkable">
-       <bool>false</bool>
-      </property>
-      <layout class="QVBoxLayout" name="verticalLayout_Timer"/>
-     </widget>
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <item>
+       <widget class="QTabWidget" name="tabWidget">
+        <property name="currentIndex">
+         <number>4</number>
+        </property>
+        <widget class="QWidget" name="tab_Metronome">
+         <attribute name="title">
+          <string>Metronome</string>
+         </attribute>
+         <layout class="QVBoxLayout" name="verticalLayout_Metronome"/>
+        </widget>
+        <widget class="QWidget" name="tab_Changes">
+         <attribute name="title">
+          <string>Chord Changes</string>
+         </attribute>
+         <layout class="QVBoxLayout" name="verticalLayout_Changes"/>
+        </widget>
+        <widget class="QWidget" name="tab_Listening">
+         <attribute name="title">
+          <string>Listening</string>
+         </attribute>
+         <layout class="QVBoxLayout" name="verticalLayout_Listening"/>
+        </widget>
+        <widget class="QWidget" name="tab_NoteNames">
+         <attribute name="title">
+          <string>Note Names</string>
+         </attribute>
+         <layout class="QVBoxLayout" name="verticalLayout_3"/>
+        </widget>
+        <widget class="QWidget" name="tab_Songs">
+         <attribute name="title">
+          <string>Songs</string>
+         </attribute>
+         <layout class="QVBoxLayout" name="verticalLayout_Songs"/>
+        </widget>
+       </widget>
+      </item>
+      <item>
+       <widget class="QGroupBox" name="groupBox_Timer">
+        <property name="title">
+         <string>Timer</string>
+        </property>
+        <property name="flat">
+         <bool>false</bool>
+        </property>
+        <property name="checkable">
+         <bool>false</bool>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_Timer"/>
+       </widget>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>

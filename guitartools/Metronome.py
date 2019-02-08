@@ -514,7 +514,14 @@ class Metronome(QtWidgets.QWidget, AutoConfig):
                     self._connect_timer(False)
                     
             self._connect_timer(index != -1)
+    
+    def setVolume(self, volume):
+        """
+        Sets Volume from 0 to 100
+        """
         
+        self.MetronomeOutput.setVolume(volume/100)
+
     #
     # Support Functions
     #
