@@ -9,7 +9,7 @@ import configobj
 # Quit on ctrl-c
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtGui
 
 #
 # Metronome widget
@@ -45,6 +45,13 @@ class GuitarToolsMainWindow(AutoConfig):
 
         # set all autoconfig items
         self.set_state(**kwargs)
+        
+        self.scriptDir = os.path.dirname(os.path.realpath(__file__)) + os.path.sep
+        IconPath = self.scriptDir + 'Images' + os.path.sep + 'GuitarIcon.png'
+        
+        # set icon
+        self.ui.setWindowIcon(QtGui.QIcon(IconPath))
+        self.qt_application.setWindowIcon(QtGui.QIcon(IconPath))
         
         # #####################################################################
         #
@@ -139,8 +146,7 @@ class GuitarToolsMainWindow(AutoConfig):
         
         # Now load the default settings
         
-        scriptDir = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'examples'
-        ConfigFile = scriptDir + os.path.sep + 'changes.ini'
+        ConfigFile = self.scriptDir + 'examples' + os.path.sep + 'changes.ini'
         self.SetFilename(ConfigFile)
         self._SetWindowTitle()
 
@@ -231,6 +237,10 @@ class GuitarToolsMainWindow(AutoConfig):
 
 
 if __name__ == '__main__':
+
+    # Find application icon
+    
+
     qapplication = QtWidgets.QApplication(sys.argv)
 
     app = GuitarToolsMainWindow(qapplication, autoconfig_name_key='guitartools')
