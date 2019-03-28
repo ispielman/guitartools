@@ -56,10 +56,11 @@ class Songs(AutoConfig):
 
         self.ui.tableWidget_Songs.setColumnCount(3)
         self.ui.tableWidget_Songs.setRowCount(0)
+        # self.ui.tableWidget_Songs.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         
         self.ui.tableWidget_Songs.setHorizontalHeaderLabels(["Song", 
                                                               "Active", 
-                                                              "Quality"
+                                                              "Age"
                                                               ])
 
         header = self.ui.tableWidget_Songs.horizontalHeader()       
@@ -88,7 +89,7 @@ class Songs(AutoConfig):
         for row in range(rows):
             data = {
                     'active': self.ui.tableWidget_Songs.cellWidget(row, ACTIVE_CHECK_INDEX).isChecked(), 
-                    'quality': float(self.ui.tableWidget_Songs.item(row, SONG_QUALITY_INDEX).text())
+                    'quality': int(float(self.ui.tableWidget_Songs.item(row, SONG_QUALITY_INDEX).text()))
                     }
             
             song = self.ui.tableWidget_Songs.item(row, SONG_NAME_INDEX).text()
@@ -109,7 +110,7 @@ class Songs(AutoConfig):
             
             row = self.add_song(name, 
                            active=song.get('active', True),
-                           quality=float(song.get('quality', 1.0)),
+                           quality=int(float(song.get('quality', 1))),
                            duplicate_check=False
                            )
             
@@ -181,10 +182,13 @@ class Songs(AutoConfig):
                 
         song_name = QtWidgets.QTableWidgetItem(name)
         song_name.setFlags(QtCore.Qt.ItemIsEnabled)
+        song_name.setFlags(QtCore.Qt.ItemIsSelectable)
+        
 
         song_quality = QtWidgets.QTableWidgetItem(
                 "{:.1f}".format(quality))
         song_quality.setFlags(QtCore.Qt.ItemIsEnabled)
+        song_quality.setFlags(QtCore.Qt.ItemIsSelectable)
 
        
         self.ui.tableWidget_Songs.setCellWidget(row, ACTIVE_CHECK_INDEX, active_check)
@@ -201,16 +205,38 @@ class Songs(AutoConfig):
         Ramdonly suggest a song to work on
         """
         
-        songs = self.active_songs
+        active_songs = self.active_songs
+        songs = self.songs
         
-        if len(songs) == 0:
+        if len(active_songs) == 0:
             song = ''
         else:
-            index = random.randrange(len(songs))
-            song = list(self.songs)[index]
+            # Randomize, but weighted by delay since last performance
+            interval = 0
+            for k in active_songs:
+                 interval += songs[k]['quality']
+                 
+            selection = random.randrange(interval)
+            for index, song in enumerate(active_songs):
+                 selection -= active_songs[song]['quality']
+                 if selection < 0:
+                     break
+            
+            # update time since last play for all other active songs
+            for i, k in enumerate(active_songs):
+                if k != song:
+                    songs[k]['quality'] += 1
+                else:
+                    index = i 
+                    songs[k]['quality'] = 1
+            
+            self.songs = songs
+            
+        self.ui.tableWidget_Songs.selectRow(index)
         
-        self.ui.lineEdit_SuggestSong.setText(song)
-
+        self.GuitarTools.qt_application.clipboard().setText(song)
+        # clipboard.setText(song)
+        
     def SongsTuple(self, *args):
         """
         generates a sorted song tuple from the list of songs provided
